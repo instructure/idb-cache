@@ -1,6 +1,7 @@
 {
 	"name": "@instructure/idb-cache",
 	"version": "1.0.3",
+	"license": "MIT",
 	"repository": {
 		"type": "git",
 		"url": "git+https://github.com/instructure/idb-cache.git"
