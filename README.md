@@ -2,6 +2,14 @@
 
 IndexedDB-based caching library with encryption and chunked storage, designed for performance and security. Implements AsyncStorage interface.
 
+```typescript
+interface AsyncStorage {
+  getItem: (key: string) => Promise<string | null>;
+  setItem: (key: string, value: string) => Promise<unknown>;
+  removeItem: (key: string) => Promise<void>;
+}
+```
+
 ## Why encrypt data in IndexedDB?
 
 > "While the browser can delete IndexedDB files stored on the local filesystem, they can be retrieved by Encase. Unfortunately, the retrieved data is in an unencrypted format, and given the nature of the data held within the IndexedDB API, a potential security issue exists."  

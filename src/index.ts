@@ -48,7 +48,7 @@ interface IDBCacheConfig {
 }
 
 interface AsyncStorage {
-  getItem: (key: string) => Promise<string | undefined | null>;
+  getItem: (key: string) => Promise<string | null>;
   setItem: (key: string, value: string) => Promise<unknown>;
   removeItem: (key: string) => Promise<void>;
 }
