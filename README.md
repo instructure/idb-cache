@@ -4,8 +4,6 @@ IndexedDB-based caching library with encryption and chunked storage, designed fo
 
 ## Why encrypt data in IndexedDB?
 
-From a 2014 paper:
-
 > "While the browser can delete IndexedDB files stored on the local filesystem, they can be retrieved by Encase. Unfortunately, the retrieved data is in an unencrypted format, and given the nature of the data held within the IndexedDB API, a potential security issue exists."  
 > — Stefan Kimak, Jeremy Ellman, Christopher Laing, ["Some Potential Issues with the Security of HTML5 IndexedDB"](https://www.researchgate.net/publication/281066023_Some_Potential_Issues_with_the_Security_of_HTML5_IndexedDB), IET Systems Safety and Cybersecurity Conference 2014.
 
