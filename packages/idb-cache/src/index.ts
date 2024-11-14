@@ -212,7 +212,9 @@ export class IDBCache implements AsyncStorage {
       ]);
 
       await transaction.done;
-      console.log("Flushed old cache items with different cacheBuster.");
+      if (this.debug) {
+        console.debug("Flushed old cache items with different cacheBuster.");
+      }
     } catch (error) {
       console.error("Error during flushBustedCacheItems:", error);
       if (error instanceof DatabaseError) {

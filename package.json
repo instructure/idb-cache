@@ -1,37 +1,13 @@
 {
-	"name": "@instructure/idb-cache",
-	"version": "1.0.3",
-	"license": "MIT",
-	"repository": {
-		"type": "git",
-		"url": "git+https://github.com/instructure/idb-cache.git"
-	},
-	"bugs": {
-		"url": "https://github.com/instructure/idb-cache/issues"
-	},
-	"homepage": "https://github.com/instructure/idb-cache#readme",
-	"type": "module",
-	"exports": {
-		".": {
-			"types": "./dist/index.d.ts",
-			"import": "./dist/index.js"
-		}
-	},
-	"module": "./dist/index.js",
-	"types": "./dist/index.d.ts",
-	"files": ["dist"],
+	"name": "idb-cache-monorepo",
+	"private": true,
 	"scripts": {
-		"build": "rslib build",
-		"dev": "rslib build --watch",
-		"biome:check": "biome check . --write"
-	},
-	"peerDependencies": {
-		"@rslib/core": "^0.0.15",
-		"idb": "^8.0.0"
+		"build": "pnpm -r run build",
+		"dev": "pnpm -r --parallel run dev",
+		"test": "pnpm -r run test",
+		"test:e2e": "pnpm --filter idb-cache-app run test:e2e"
 	},
 	"devDependencies": {
-		"@biomejs/biome": "1.9.4",
-		"@rslib/core": "^0.0.15",
-		"typescript": "^5.6.3"
+		"@biomejs/biome": "1.9.4"
 	}
 }

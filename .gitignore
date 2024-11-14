@@ -11,3 +11,9 @@ dist/
 .vscode/*
 !.vscode/extensions.json
 .idea
+test-results
+playwright-report
+/blob-report/
+/playwright/.cache/
+packages/idb-cache/test-results
+packages/idb-cache-app/test-results

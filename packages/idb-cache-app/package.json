@@ -1,0 +1,26 @@
+{
+	"name": "idb-cache-app",
+	"private": true,
+	"version": "1.0.0",
+	"scripts": {
+		"dev": "rsbuild dev --open",
+		"build": "rsbuild build",
+		"preview": "rsbuild preview"
+	},
+	"dependencies": {
+		"@instructure/idb-cache": "workspace:*",
+		"random-seed": "^0.3.0",
+		"react": "^18.3.1",
+		"react-dom": "^18.3.1"
+	},
+	"devDependencies": {
+		"@rsbuild/core": "^1.0.19",
+		"@rsbuild/plugin-react": "^1.0.6",
+		"@types/random-seed": "^0.3.5",
+		"@types/react": "^18.3.12",
+		"@types/react-dom": "^18.3.1",
+		"daisyui": "^4.12.14",
+		"tailwindcss": "^3.4.15",
+		"typescript": "^5.6.3"
+	}
+}
