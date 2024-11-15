@@ -3,6 +3,9 @@ import { pluginReact } from "@rsbuild/plugin-react";
 
 export default defineConfig({
   plugins: [pluginReact()],
+  output: {
+    assetPrefix: "/idb-cache/",
+  },
   html: {
     title: "idb-cache",
   },
