@@ -12,10 +12,7 @@ interface AsyncStorage {
 
 ## Why encrypt data in IndexedDB?
 
-> "While the browser can delete IndexedDB files stored on the local filesystem, they can be retrieved by Encase. Unfortunately, the retrieved data is in an unencrypted format, and given the nature of the data held within the IndexedDB API, a potential security issue exists."  
-> — Stefan Kimak, Jeremy Ellman, Christopher Laing, ["Some Potential Issues with the Security of HTML5 IndexedDB"](https://www.researchgate.net/publication/281066023_Some_Potential_Issues_with_the_Security_of_HTML5_IndexedDB), IET Systems Safety and Cybersecurity Conference 2014.
-
-It is also an issue in the scenario of multiple people sharing the same device and browser.
+Encryption keeps data in IndexedDB private, even when a browser profile is shared on the same device. Only one with access to the `cacheKey` can decrypt the data.
 
 ## Installation
 
