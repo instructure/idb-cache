@@ -7,31 +7,6 @@ import {
 } from "idb";
 import type { IDBCacheSchema, STORE } from "./types";
 
-/**
- * Generates a UUID v1-like string.
- * @returns A UUID v1-like string.
- */
-export function generateUUIDv1(): string {
-  const now = Date.now();
-
-  const timeLow = (now & 0xffffffff).toString(16).padStart(8, "0");
-  const timeMid = ((now / 0x100000000) & 0xffff).toString(16).padStart(4, "0");
-  const timeHiAndVersion = (((now / 0x1000000000000) & 0x0fff) | 0x1000)
-    .toString(16)
-    .padStart(4, "0");
-
-  const clockSeq = (Math.floor(Math.random() * 0x3fff) | 0x8000)
-    .toString(16)
-    .padStart(4, "0");
-
-  const node = crypto.getRandomValues(new Uint8Array(6));
-  const nodeHex = Array.from(node)
-    .map((b) => b.toString(16).padStart(2, "0"))
-    .join("");
-
-  return `${timeLow}-${timeMid}-${timeHiAndVersion}-${clockSeq}-${nodeHex}`;
-}
-
 const uuidCache = new Map<string, string>();
 
 /**

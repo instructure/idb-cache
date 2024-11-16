@@ -6,7 +6,6 @@ import {
   DecryptionError,
   IDBCacheError,
 } from "./errors";
-import { generateUUIDv1 } from "./utils";
 
 /**
  * Encrypts a chunk of data using the worker.
@@ -22,7 +21,7 @@ export async function encryptChunk(
   value: string,
   pendingRequests: Map<string, ExtendedPendingRequest<EncryptedChunk>>
 ): Promise<EncryptedChunk> {
-  const requestId = generateUUIDv1();
+  const requestId = crypto.randomUUID();
   try {
     const encrypted = await sendMessageToWorker<"encrypt">(
       port,
@@ -66,7 +65,7 @@ export async function decryptChunk(
   ciphertext: ArrayBuffer,
   pendingRequests: Map<string, ExtendedPendingRequest<string>>
 ): Promise<string> {
-  const requestId = generateUUIDv1();
+  const requestId = crypto.randomUUID();
   try {
     const decrypted = await sendMessageToWorker<"decrypt">(
       port,
