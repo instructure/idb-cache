@@ -10,7 +10,7 @@ import type { IDBCacheSchema, STORE } from "./types";
 const uuidCache = new Map<string, string>();
 
 /**
- * Generates a deterministic UUID based on SHA-256 hash.
+ * Generates a deterministic UUID based on SHA-512 hash.
  * @param cacheKey - The cache key.
  * @param itemKey - The item key.
  * @returns A deterministic UUID string.
@@ -30,7 +30,7 @@ export async function deterministicUUID(
 
   const encoder = new TextEncoder();
   const data = encoder.encode(key);
-  const hashBuffer = await crypto.subtle.digest("SHA-256", data);
+  const hashBuffer = await crypto.subtle.digest("SHA-512", data);
   const hashArray = Array.from(new Uint8Array(hashBuffer));
   const hashHex = hashArray
     .map((b) => b.toString(16).padStart(2, "0"))
@@ -59,7 +59,7 @@ export function generateChunkKey(
 export async function computeChunkHash(chunk: string): Promise<string> {
   const encoder = new TextEncoder();
   const data = encoder.encode(chunk);
-  const hashBuffer = await crypto.subtle.digest("SHA-256", data);
+  const hashBuffer = await crypto.subtle.digest("SHA-512", data);
   const hashArray = Array.from(new Uint8Array(hashBuffer));
   const hashHex = hashArray
     .map((b) => b.toString(16).padStart(2, "0"))

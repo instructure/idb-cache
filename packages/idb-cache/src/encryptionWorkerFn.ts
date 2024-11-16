@@ -41,7 +41,7 @@ export function encryptionWorkerFunction() {
         name: "PBKDF2",
         salt: fixedSalt,
         iterations: pbkdf2Iterations,
-        hash: "SHA-256",
+        hash: "SHA-512",
       },
       keyMaterial,
       { name: "AES-GCM", length: 256 },
