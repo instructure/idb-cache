@@ -28,10 +28,12 @@ const cache = new IDBCache({
 	cacheBuster,
 	debug: true,
 });
+// @ts-expect-error
+window.idbCacheInstance = cache;
 
 const DEFAULT_NUM_ITEMS = 1;
 
-const DEFAULT_ITEM_SIZE = 10240;
+const DEFAULT_ITEM_SIZE = 1024 * 32;
 
 const initialItemSize =
 	Number.parseInt(
