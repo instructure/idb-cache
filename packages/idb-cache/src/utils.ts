@@ -9,18 +9,24 @@ import type { IDBCacheSchema, STORE } from "./types";
 
 const uuidCache = new Map<string, string>();
 
+export function generateUUIDFromHash(hashHex: string): string {
+  return [
+    hashHex.slice(0, 8),
+    hashHex.slice(8, 12),
+    `4${hashHex.slice(13, 16)}`,
+    ((Number.parseInt(hashHex.slice(16, 17), 16) & 0x3) | 0x8).toString(16) +
+      hashHex.slice(17, 20),
+    hashHex.slice(20, 32),
+  ].join("-");
+}
+
 /**
  * Generates a deterministic UUID based on SHA-512 hash.
  * @param cacheKey - The cache key.
  * @param itemKey - The item key.
  * @returns A deterministic UUID string.
  */
-export async function deterministicUUID(
-  cacheKey: string,
-  itemKey: string
-): Promise<string> {
-  const key = `${cacheKey}:${itemKey}`;
-
+export async function deterministicUUID(key: string): Promise<string> {
   if (uuidCache.has(key)) {
     const uuid = uuidCache.get(key);
     if (typeof uuid === "string") {
@@ -36,14 +42,7 @@ export async function deterministicUUID(
     .map((b) => b.toString(16).padStart(2, "0"))
     .join("");
 
-  const uuid = [
-    hashHex.slice(0, 8),
-    hashHex.slice(8, 12),
-    `4${hashHex.slice(13, 16)}`,
-    ((Number.parseInt(hashHex.slice(16, 17), 16) & 0x3) | 0x8).toString(16) +
-      hashHex.slice(17, 20),
-    hashHex.slice(20, 32),
-  ].join("-");
+  const uuid = generateUUIDFromHash(hashHex);
   uuidCache.set(key, uuid);
   return uuid;
 }
@@ -67,7 +66,7 @@ export async function computeChunkHash(
   const hashHex = hashArray
     .map((b) => b.toString(16).padStart(2, "0"))
     .join("");
-  return hashHex;
+  return generateUUIDFromHash(hashHex);
 }
 
 export function parseChunkIndexFromKey(chunkKey: string): number {

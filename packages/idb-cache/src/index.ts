@@ -302,7 +302,7 @@ export class IDBCache implements AsyncStorage {
       await this.ensureWorkerInitialized();
 
       const db = await this.dbReadyPromise;
-      const baseKey = await deterministicUUID(this.cacheKey, itemKey);
+      const baseKey = await deterministicUUID(`${this.cacheKey}:${itemKey}`);
       const now = Date.now();
 
       const chunkKeys = await getAllChunkKeysForBaseKey(
@@ -397,7 +397,7 @@ export class IDBCache implements AsyncStorage {
       await this.ensureWorkerInitialized();
 
       const db = await this.dbReadyPromise;
-      const baseKey = await deterministicUUID(this.cacheKey, itemKey);
+      const baseKey = await deterministicUUID(`${this.cacheKey}:${itemKey}`);
       const expirationTimestamp = Date.now() + this.gcTime;
 
       const existingChunkKeys = await getAllChunkKeysForBaseKey(
@@ -516,7 +516,7 @@ export class IDBCache implements AsyncStorage {
   async removeItem(itemKey: string): Promise<void> {
     try {
       const db = await this.dbReadyPromise;
-      const baseKey = await deterministicUUID(this.cacheKey, itemKey);
+      const baseKey = await deterministicUUID(`${this.cacheKey}:${itemKey}`);
 
       const chunkKeys = await getAllChunkKeysForBaseKey(
         db,
