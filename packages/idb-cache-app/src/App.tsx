@@ -1,9 +1,9 @@
 import "./App.css";
 import { IDBCache } from "@instructure/idb-cache";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useState } from "react";
 import { uuid, deterministicHash, generateTextOfSize } from "./utils";
 import { Button } from "@instructure/ui-buttons";
-import { MetricGroup, Metric } from "@instructure/ui-metric";
+import { Metric } from "@instructure/ui-metric";
 import { View } from "@instructure/ui-view";
 import { Flex } from "@instructure/ui-flex";
 import { Heading } from "@instructure/ui-heading";
@@ -38,38 +38,45 @@ const initialItemSize =
 		localStorage.getItem("itemSize") || String(DEFAULT_ITEM_SIZE),
 	) || DEFAULT_ITEM_SIZE;
 
+const BlankStat = () => (
+	<span
+		style={{
+			color: "#ddd",
+		}}
+	>
+		------
+	</span>
+);
+
 const App = () => {
 	const [hash1, setHash1] = useState<string | null>(null);
 	const [hash2, setHash2] = useState<string | null>(null);
+	const [timeToGenerate, setTimeToGenerate] = useState<number | null>(null);
 	const [setTime, setSetTime] = useState<number | null>(null);
 	const [getTime, setGetTime] = useState<number | null>(null);
 	const [itemSize, setItemSize] = useState<number>(initialItemSize);
-	const [isEncrypting, setIsEncrypting] = useState<boolean>(false);
-	const [isDecrypting, setIsDecrypting] = useState<boolean>(false);
 
 	const encryptAndStore = useCallback(async () => {
-		console.time("generating content");
-		setIsEncrypting(true);
+		const start1 = performance.now();
 		const paragraphs = Array.from({ length: DEFAULT_NUM_ITEMS }, (_, index) =>
 			generateTextOfSize(itemSize, `${cacheBuster}-${index}`),
 		);
-		console.timeEnd("generating content");
+		const end1 = performance.now();
+		setTimeToGenerate(end1 - start1);
 
-		const start = performance.now();
+		const start2 = performance.now();
 
 		for (let i = 0; i < DEFAULT_NUM_ITEMS; i++) {
 			await cache.setItem(`item-${i}`, paragraphs[i]);
 		}
 
-		const end = performance.now();
-		setSetTime(end - start);
+		const end2 = performance.now();
+		setSetTime(end2 - start2);
 
 		setHash1(deterministicHash(paragraphs.join("")));
-		setIsEncrypting(false);
 	}, [itemSize]);
 
 	const retrieveAndDecrypt = useCallback(async () => {
-		setIsDecrypting(true);
 		const results: Array<string | null> = [];
 		const start = performance.now();
 
@@ -81,18 +88,6 @@ const App = () => {
 		const end = performance.now();
 		setGetTime(end - start);
 		setHash2(results.length > 0 ? deterministicHash(results.join("")) : null);
-		setIsDecrypting(false);
-	}, []);
-
-	// biome-ignore lint/correctness/useExhaustiveDependencies: <explanation>
-	useEffect(() => {
-		requestAnimationFrame(() => {
-			encryptAndStore().then(() => {
-				requestAnimationFrame(() => {
-					retrieveAndDecrypt();
-				});
-			});
-		});
 	}, []);
 
 	return (
@@ -144,7 +139,7 @@ const App = () => {
 							<legend className="text-lg font-semibold text-gray-700">
 								Test Configuration
 							</legend>
-							<div className="flex flex-col gap-4">
+							<Flex direction="column" gap="small">
 								<div className="flex items-center justify-between">
 									<span>
 										Cache key: <code className="text-sm">{cacheKey}</code>
@@ -171,14 +166,7 @@ const App = () => {
 										Reset
 									</Button>
 								</div>
-							</div>
-						</fieldset>
 
-						<fieldset className="border border-gray-300 rounded-lg p-4 mb-6">
-							<legend className="text-lg font-semibold text-gray-700">
-								Performance Test
-							</legend>
-							<div className="flex flex-col gap-4">
 								<Flex gap="medium">
 									<Flex.Item shouldGrow>
 										<NumberInput
@@ -219,7 +207,14 @@ const App = () => {
 										/>
 									</Flex.Item>
 								</Flex>
+							</Flex>
+						</fieldset>
 
+						<fieldset className="border border-gray-300 rounded-lg p-4">
+							<legend className="text-lg font-semibold text-gray-700">
+								Performance Tests
+							</legend>
+							<div className="flex flex-col gap-4">
 								<View
 									as="span"
 									display="inline-block"
@@ -230,23 +225,41 @@ const App = () => {
 								>
 									<Flex direction="column">
 										<Button color="primary" onClick={encryptAndStore}>
-											Encrypt and store
+											setItem
 										</Button>
 										<View padding="medium 0 0 0">
-											<MetricGroup>
-												<Metric
-													renderLabel="to encrypt and store"
-													renderValue={
-														setTime !== null
-															? `${Math.round(setTime)} ms`
-															: "N/A"
-													}
-												/>
-												<Metric
-													renderLabel="hash of data"
-													renderValue={hash1}
-												/>
-											</MetricGroup>
+											<Flex>
+												<Flex.Item size="33.3%">
+													<Metric
+														renderLabel="generate test data"
+														renderValue={
+															setTime !== null ? (
+																`${Math.round(timeToGenerate || 0)} ms`
+															) : (
+																<BlankStat />
+															)
+														}
+													/>
+												</Flex.Item>
+												<Flex.Item shouldGrow>
+													<Metric
+														renderLabel="setItem"
+														renderValue={
+															setTime !== null ? (
+																`${Math.round(setTime)} ms`
+															) : (
+																<BlankStat />
+															)
+														}
+													/>
+												</Flex.Item>
+												<Flex.Item size="33.3%">
+													<Metric
+														renderLabel="hash"
+														renderValue={hash1 || <BlankStat />}
+													/>
+												</Flex.Item>
+											</Flex>
 										</View>
 									</Flex>
 								</View>
@@ -261,24 +274,31 @@ const App = () => {
 								>
 									<Flex direction="column">
 										<Button color="primary" onClick={retrieveAndDecrypt}>
-											Retrieve and decrypt
+											getItem
 										</Button>
 
 										<View padding="medium 0 0 0">
-											<MetricGroup>
-												<Metric
-													renderLabel="to retrieve and decrypt"
-													renderValue={
-														getTime !== null
-															? `${Math.round(getTime)} ms`
-															: "error"
-													}
-												/>
-												<Metric
-													renderLabel="hash of data"
-													renderValue={hash2}
-												/>
-											</MetricGroup>
+											<Flex>
+												<Flex.Item size="33.3%">&nbsp;</Flex.Item>
+												<Flex.Item shouldGrow>
+													<Metric
+														renderLabel="getItem"
+														renderValue={
+															getTime !== null ? (
+																`${Math.round(getTime)} ms`
+															) : (
+																<BlankStat />
+															)
+														}
+													/>
+												</Flex.Item>
+												<Flex.Item size="33.3%">
+													<Metric
+														renderLabel="hash"
+														renderValue={hash2 || <BlankStat />}
+													/>
+												</Flex.Item>
+											</Flex>
 										</View>
 									</Flex>
 								</View>

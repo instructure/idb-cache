@@ -1,4 +1,4 @@
-import { decryptChunk, encryptChunk } from "./encryption";
+import { decryptChunk, encryptChunk } from "./encryptionTasks";
 import type {
   EncryptedChunk,
   ExtendedPendingRequest,
@@ -13,7 +13,7 @@ import {
   getAllChunkKeysForBaseKey,
   deterministicUUID,
 } from "./utils";
-import { encryptionWorkerFunction } from "./workerFunction";
+import { encryptionWorkerFunction } from "./encryptionWorkerFn";
 import {
   createWorkerFromFunction,
   initializeWorker,
@@ -33,6 +33,7 @@ const DEFAULT_CHUNK_SIZE = 25000;
 const DEFAULT_GC_TIME = 7 * 24 * 60 * 60 * 1000;
 const DEFAULT_PBKDF2_ITERATIONS = 100000;
 const CLEANUP_INTERVAL = 60 * 1000;
+const DURATION_THRESHOLD = 200;
 
 const isSubtleCryptoSupported = crypto?.subtle;
 
@@ -193,6 +194,7 @@ export class IDBCache implements AsyncStorage {
       const upperBoundRange = IDBKeyRange.lowerBound(currentCacheBuster, true);
 
       const deleteItemsInRange = async (range: IDBKeyRange) => {
+        let itemsDeleted = 0;
         let cursor = await index.openCursor(range);
         while (cursor) {
           if (this.debug) {
@@ -202,18 +204,23 @@ export class IDBCache implements AsyncStorage {
             );
           }
           await cursor.delete();
+          itemsDeleted++;
           cursor = await cursor.continue();
         }
+        return itemsDeleted;
       };
 
-      await Promise.all([
+      const itemsDeleted = await Promise.all([
         deleteItemsInRange(lowerBoundRange),
         deleteItemsInRange(upperBoundRange),
       ]);
 
       await transaction.done;
       if (this.debug) {
-        console.debug("Flushed old cache items with different cacheBuster.");
+        const total = itemsDeleted.reduce((acc, curr) => acc + (curr || 0), 0);
+        if (total > 0) {
+          console.debug("Flushed old cache items with different cacheBuster.");
+        }
       }
     } catch (error) {
       console.error("Error during flushBustedCacheItems:", error);
@@ -343,7 +350,7 @@ export class IDBCache implements AsyncStorage {
       );
 
       const duration = Date.now() - startTime;
-      if (this.debug && duration > 200) {
+      if (this.debug && duration > DURATION_THRESHOLD) {
         console.debug(`getItem for key ${itemKey} took ${duration}ms`);
       }
 
@@ -475,7 +482,7 @@ export class IDBCache implements AsyncStorage {
       await tx.done;
 
       const duration = Date.now() - startTime;
-      if (this.debug && duration > 200) {
+      if (this.debug && duration > DURATION_THRESHOLD) {
         console.debug(`setItem for key ${itemKey} took ${duration}ms`);
       }
     } catch (error) {
