@@ -26,6 +26,7 @@
 		"@playwright/test": "^1.48.2",
 		"@rsbuild/core": "^1.0.19",
 		"@rsbuild/plugin-react": "^1.0.6",
+		"@types/node": "^22.9.0",
 		"@types/random-seed": "^0.3.5",
 		"@types/react": "^18.3.12",
 		"@types/react-dom": "^18.3.1",

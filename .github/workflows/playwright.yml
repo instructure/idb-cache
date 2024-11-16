@@ -10,13 +10,14 @@ on:
 
 jobs:
   test-linux:
-    name: Playwright tests on Linux (headless=${{ matrix.headless }})
+    name: Playwright tests on Linux (headless=${{ matrix.headless }}, browser=${{ matrix.browser }})
     runs-on: ubuntu-22.04
 
     strategy:
       fail-fast: false
       matrix:
         headless: [true]
+        browser: [chromium, firefox]
 
     steps:
       # 1. Checkout the repository
@@ -50,9 +51,9 @@ jobs:
         uses: actions/cache@v3
         with:
           path: ~/.cache/ms-playwright
-          key: ${{ runner.os }}-playwright-${{ hashFiles('**/package.json', '**/playwright.config.*') }}
+          key: ${{ runner.os }}-playwright-${{ matrix.browser }}-${{ hashFiles('**/package.json', '**/playwright.config.*') }}
           restore-keys: |
-            ${{ runner.os }}-playwright-
+            ${{ runner.os }}-playwright-${{ matrix.browser }}-
 
       # 6. Install dependencies
       - name: Install dependencies
@@ -86,7 +87,7 @@ jobs:
 
       # 11. Install Playwright browsers
       - name: Install Playwright browsers
-        run: pnpm --filter idb-cache-app exec playwright install
+        run: pnpm --filter idb-cache-app exec playwright install ${{ matrix.browser }}
 
       # 12. Serve the idb-cache-app
       - name: Serve idb-cache-app
@@ -107,14 +108,6 @@ jobs:
           echo "Server failed to start in time."
           exit 1
 
-      # 14. Run Playwright tests in headless mode
-      - name: Run Playwright tests (Headless)
-        if: ${{ matrix.headless == true }}
-        run: pnpm --filter idb-cache-app test
-
-      # 15. Run Playwright tests in headful mode on Linux
-      - name: Run Playwright tests (Headful)
-        if: ${{ matrix.headless == false }}
-        run: |
-          export HEADFUL=true
-          xvfb-run --auto-servernum -- pnpm --filter idb-cache-app test
+      # 14. Run Playwright tests
+      - name: Run Playwright tests
+        run: pnpm --filter idb-cache-app test -- --project=${{ matrix.browser }}

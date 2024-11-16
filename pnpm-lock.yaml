@@ -75,6 +75,9 @@ importers:
       '@rsbuild/plugin-react':
         specifier: ^1.0.6
         version: 1.0.7(@rsbuild/core@1.1.2)
+      '@types/node':
+        specifier: ^22.9.0
+        version: 22.9.0
       '@types/random-seed':
         specifier: ^0.3.5
         version: 0.3.5
