@@ -8,7 +8,6 @@ import type {
 import {
   generateChunkKey,
   openDatabase,
-  computeChunkHash,
   parseChunkIndexFromKey,
   getAllChunkKeysForBaseKey,
   deterministicUUID,
@@ -419,7 +418,9 @@ export class IDBCache implements AsyncStorage {
         const chunk = value.slice(i, i + this.chunkSize);
         const chunkIndex = Math.floor(i / this.chunkSize);
 
-        const chunkHash = await computeChunkHash(chunk, this.cacheBuster);
+        const chunkHash = await deterministicUUID(
+          `${this.cacheKey}:${this.cacheBuster}:${chunk}`
+        );
         const chunkKey = generateChunkKey(baseKey, chunkIndex, chunkHash);
         newChunkKeys.add(chunkKey);
 
