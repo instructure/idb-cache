@@ -136,7 +136,7 @@ const App = () => {
 			<GitHubLink />
 
 			<div className="min-h-screen bg-gray-50 p-8">
-				<div className="max-w-4xl mx-auto p-6 bg-white shadow-md rounded-lg">
+				<View as="div" display="block" width="820px" margin="0 auto">
 					<Heading level="h1" margin="0 0 small 0">
 						@instructure/idb-cache
 					</Heading>
@@ -151,7 +151,7 @@ const App = () => {
 												<TextInput
 													renderLabel="Cache key:"
 													interaction="disabled"
-													value={cacheKey}
+													defaultValue={cacheKey}
 												/>
 											</Flex.Item>
 											<Flex.Item>
@@ -175,7 +175,7 @@ const App = () => {
 												<TextInput
 													renderLabel="Cache buster:"
 													interaction="disabled"
-													value={cacheBuster}
+													defaultValue={cacheBuster}
 												/>
 											</Flex.Item>
 											<Flex.Item>
@@ -426,7 +426,7 @@ const App = () => {
 							</Flex>
 						</View>
 					</form>
-				</div>
+				</View>
 			</div>
 		</>
 	);
