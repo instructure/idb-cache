@@ -14,6 +14,14 @@
 		"react-dom": "^18.3.1"
 	},
 	"devDependencies": {
+		"@instructure/ui": "^9.9.0",
+		"@instructure/ui-buttons": "^9.9.0",
+		"@instructure/ui-flex": "^9.9.0",
+		"@instructure/ui-heading": "^9.9.0",
+		"@instructure/ui-metric": "^9.9.0",
+		"@instructure/ui-number-input": "^9.9.0",
+		"@instructure/ui-text-input": "^9.9.0",
+		"@instructure/ui-view": "^9.9.0",
 		"@rsbuild/core": "^1.0.19",
 		"@rsbuild/plugin-react": "^1.0.6",
 		"@types/random-seed": "^0.3.5",

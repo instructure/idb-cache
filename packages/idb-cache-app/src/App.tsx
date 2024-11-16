@@ -2,6 +2,12 @@ import "./App.css";
 import { IDBCache } from "@instructure/idb-cache";
 import { useCallback, useEffect, useState } from "react";
 import { uuid, deterministicHash, generateTextOfSize } from "./utils";
+import { Button } from "@instructure/ui-buttons";
+import { MetricGroup, Metric } from "@instructure/ui-metric";
+import { View } from "@instructure/ui-view";
+import { Flex } from "@instructure/ui-flex";
+import { Heading } from "@instructure/ui-heading";
+import { NumberInput } from "@instructure/ui-number-input";
 
 // For demonstration/testing purposes.
 //   Do *not* store cacheKey to localStorage in production.
@@ -25,11 +31,6 @@ const cache = new IDBCache({
 
 const DEFAULT_NUM_ITEMS = 1;
 
-const initialNumItems =
-	Number.parseInt(
-		localStorage.getItem("numItems") || String(DEFAULT_NUM_ITEMS),
-	) || DEFAULT_NUM_ITEMS;
-
 const DEFAULT_ITEM_SIZE = 10240;
 
 const initialItemSize =
@@ -42,7 +43,6 @@ const App = () => {
 	const [hash2, setHash2] = useState<string | null>(null);
 	const [setTime, setSetTime] = useState<number | null>(null);
 	const [getTime, setGetTime] = useState<number | null>(null);
-	const [numItems, setNumItems] = useState<number>(initialNumItems);
 	const [itemSize, setItemSize] = useState<number>(initialItemSize);
 	const [isEncrypting, setIsEncrypting] = useState<boolean>(false);
 	const [isDecrypting, setIsDecrypting] = useState<boolean>(false);
@@ -50,14 +50,14 @@ const App = () => {
 	const encryptAndStore = useCallback(async () => {
 		console.time("generating content");
 		setIsEncrypting(true);
-		const paragraphs = Array.from({ length: numItems }, (_, index) =>
+		const paragraphs = Array.from({ length: DEFAULT_NUM_ITEMS }, (_, index) =>
 			generateTextOfSize(itemSize, `${cacheBuster}-${index}`),
 		);
 		console.timeEnd("generating content");
 
 		const start = performance.now();
 
-		for (let i = 0; i < numItems; i++) {
+		for (let i = 0; i < DEFAULT_NUM_ITEMS; i++) {
 			await cache.setItem(`item-${i}`, paragraphs[i]);
 		}
 
@@ -66,14 +66,14 @@ const App = () => {
 
 		setHash1(deterministicHash(paragraphs.join("")));
 		setIsEncrypting(false);
-	}, [numItems, itemSize]);
+	}, [itemSize]);
 
 	const retrieveAndDecrypt = useCallback(async () => {
 		setIsDecrypting(true);
 		const results: Array<string | null> = [];
 		const start = performance.now();
 
-		for (let i = 0; i < numItems; i++) {
+		for (let i = 0; i < DEFAULT_NUM_ITEMS; i++) {
 			const result = await cache.getItem(`item-${i}`);
 			results.push(result);
 		}
@@ -82,7 +82,7 @@ const App = () => {
 		setGetTime(end - start);
 		setHash2(results.length > 0 ? deterministicHash(results.join("")) : null);
 		setIsDecrypting(false);
-	}, [numItems]);
+	}, []);
 
 	// biome-ignore lint/correctness/useExhaustiveDependencies: <explanation>
 	useEffect(() => {
@@ -135,9 +135,9 @@ const App = () => {
 
 			<div className="min-h-screen bg-gray-50 p-8">
 				<div className="max-w-4xl mx-auto p-6 bg-white shadow-md rounded-lg">
-					<h1 className="text-4xl font-bold text-center text-primary mb-6">
+					<Heading level="h1" margin="0 0 small 0">
 						@instructure/idb-cache
-					</h1>
+					</Heading>
 
 					<form>
 						<fieldset className="border border-gray-300 rounded-lg p-4 mb-6">
@@ -149,32 +149,27 @@ const App = () => {
 									<span>
 										Cache key: <code className="text-sm">{cacheKey}</code>
 									</span>
-									<button
-										type="button"
-										className="btn btn-sm"
+									<Button
 										onClick={() => {
 											localStorage.removeItem("cacheKey");
 											window.location.reload();
 										}}
 									>
 										Reset
-									</button>
+									</Button>
 								</div>
 								<div className="flex items-center justify-between">
 									<span>
-										Cache buster (salt):{" "}
-										<code className="text-sm">{cacheBuster}</code>
+										Cache buster: <code className="text-sm">{cacheBuster}</code>
 									</span>
-									<button
-										type="button"
-										className="btn btn-sm"
+									<Button
 										onClick={() => {
 											localStorage.removeItem("cacheBuster");
 											window.location.reload();
 										}}
 									>
 										Reset
-									</button>
+									</Button>
 								</div>
 							</div>
 						</fieldset>
@@ -184,139 +179,109 @@ const App = () => {
 								Performance Test
 							</legend>
 							<div className="flex flex-col gap-4">
-								<div className="form-control">
-									<label className="label">
-										<span className="label-text font-medium">
-											Size of each item (kb):
-										</span>
-										<input
-											// biome-ignore lint/a11y/noAutofocus: <explanation>
-											autoFocus={true}
-											className="input input-bordered w-full max-w-xs"
-											type="number"
-											value={Math.round(itemSize / 1024)}
+								<Flex gap="medium">
+									<Flex.Item shouldGrow>
+										<NumberInput
+											renderLabel="Size of data (kb):"
 											onChange={(e) => {
-												setItemSize(Number(e.target.value) * 1024);
-												localStorage.setItem(
-													"itemSize",
-													String(Number.parseInt(e.target.value) * 1024),
+												const newValue = Math.max(
+													Number.parseInt(e.target.value) * 1024,
+													1024,
 												);
+												setItemSize(newValue);
+												localStorage.setItem("itemSize", String(newValue));
 											}}
+											onIncrement={() => {
+												const newValue = Math.max(
+													Math.round(itemSize) + 1 * 1024,
+													1024,
+												);
+												setItemSize(newValue);
+												localStorage.setItem("itemSize", String(newValue));
+											}}
+											onDecrement={() => {
+												const newValue = Math.max(
+													Math.round(itemSize) - 1 * 1024,
+													1024,
+												);
+												setItemSize(newValue);
+												localStorage.setItem("itemSize", String(newValue));
+											}}
+											isRequired
+											value={Math.round(itemSize / 1024)}
 										/>
-									</label>
-								</div>
-
-								<div className="form-control">
-									<label className="label">
-										<span className="label-text font-medium">
-											Number of items:
-										</span>
-										<input
-											className="input input-bordered w-full max-w-xs"
-											type="number"
-											value={numItems}
-											onChange={(e) => {
-												setNumItems(Number(e.target.value));
-												localStorage.setItem("numItems", e.target.value);
-											}}
+									</Flex.Item>
+									<Flex.Item shouldGrow>
+										<NumberInput
+											renderLabel="Number of chunks:"
+											interaction="disabled"
+											value={Math.ceil(itemSize / 25000)}
 										/>
-									</label>
-								</div>
+									</Flex.Item>
+								</Flex>
 
-								<div className="flex flex-col gap-4">
-									<button
-										className="btn btn-primary"
-										type="button"
-										onClick={encryptAndStore}
-									>
-										Encrypt and store
-										<span
-											className="loading loading-spinner"
-											style={{
-												visibility: !isEncrypting ? "hidden" : "visible",
-											}}
-										/>
-									</button>
-									<div className="stats shadow">
-										<div
-											className="stat place-items-center"
-											style={{
-												visibility: hash1 ? "visible" : "hidden",
-											}}
-										>
-											<>
-												<div className="stat-title">Took</div>
-												<div className="stat-value">
-													{setTime !== null
-														? `${Math.round(setTime)} ms`
-														: "N/A"}
-												</div>
-												<div className="stat-desc">to encrypt and store</div>
-											</>
-										</div>
+								<View
+									as="span"
+									display="inline-block"
+									margin="none"
+									padding="medium"
+									background="primary"
+									shadow="resting"
+								>
+									<Flex direction="column">
+										<Button color="primary" onClick={encryptAndStore}>
+											Encrypt and store
+										</Button>
+										<View padding="medium 0 0 0">
+											<MetricGroup>
+												<Metric
+													renderLabel="to encrypt and store"
+													renderValue={
+														setTime !== null
+															? `${Math.round(setTime)} ms`
+															: "N/A"
+													}
+												/>
+												<Metric
+													renderLabel="hash of data"
+													renderValue={hash1}
+												/>
+											</MetricGroup>
+										</View>
+									</Flex>
+								</View>
 
-										<div
-											className="stat place-items-center"
-											style={{
-												visibility: hash1 ? "visible" : "hidden",
-											}}
-										>
-											<>
-												<div className="stat-title">Hash</div>
-												<div className="stat-value">{hash1}</div>
-												<div className="stat-desc">of data</div>
-											</>
-										</div>
-									</div>
-								</div>
+								<View
+									as="span"
+									display="inline-block"
+									margin="none"
+									padding="medium"
+									background="primary"
+									shadow="resting"
+								>
+									<Flex direction="column">
+										<Button color="primary" onClick={retrieveAndDecrypt}>
+											Retrieve and decrypt
+										</Button>
 
-								<div className="flex flex-col gap-4">
-									<button
-										className="btn btn-secondary"
-										type="button"
-										onClick={retrieveAndDecrypt}
-									>
-										Retrieve and decrypt
-										<span
-											className="loading loading-spinner"
-											style={{
-												visibility: !isDecrypting ? "hidden" : "visible",
-											}}
-										/>
-									</button>
-
-									<div className="stats shadow">
-										<div
-											className="stat place-items-center"
-											style={{
-												visibility: hash2 ? "visible" : "hidden",
-											}}
-										>
-											<>
-												<div className="stat-title">Took</div>
-												<div className="stat-value">
-													{getTime !== null
-														? `${Math.round(getTime)} ms`
-														: "error"}
-												</div>
-												<div className="stat-desc">to retrieve and decrypt</div>
-											</>
-										</div>
-
-										<div
-											className="stat place-items-center"
-											style={{
-												visibility: hash2 ? "visible" : "hidden",
-											}}
-										>
-											<>
-												<div className="stat-title">Hash</div>
-												<div className="stat-value">{hash2}</div>
-												<div className="stat-desc">of data</div>
-											</>
-										</div>
-									</div>
-								</div>
+										<View padding="medium 0 0 0">
+											<MetricGroup>
+												<Metric
+													renderLabel="to retrieve and decrypt"
+													renderValue={
+														getTime !== null
+															? `${Math.round(getTime)} ms`
+															: "error"
+													}
+												/>
+												<Metric
+													renderLabel="hash of data"
+													renderValue={hash2}
+												/>
+											</MetricGroup>
+										</View>
+									</Flex>
+								</View>
 							</div>
 						</fieldset>
 					</form>
