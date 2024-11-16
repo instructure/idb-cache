@@ -48,10 +48,11 @@ interface IDBCacheConfig {
   gcTime?: number;
 }
 
-interface AsyncStorage {
+export interface AsyncStorage {
   getItem: (key: string) => Promise<string | null>;
   setItem: (key: string, value: string) => Promise<unknown>;
   removeItem: (key: string) => Promise<void>;
+  clear: () => Promise<void>;
 }
 
 export class IDBCache implements AsyncStorage {
@@ -546,31 +547,110 @@ export class IDBCache implements AsyncStorage {
   }
 
   /**
-   * Destroys the IDBCache instance by clearing intervals, terminating the worker, and rejecting all pending requests.
+   * Counts the total number of encrypted chunks stored in the cache.
+   * @returns The total number of entries (chunks) in the cache.
+   * @throws {DatabaseError} If there is an issue accessing the database.
    */
-  public destroy() {
-    if (this.cleanupIntervalId !== undefined) {
-      clearInterval(this.cleanupIntervalId);
+  async count(): Promise<number> {
+    try {
+      const db = await this.dbReadyPromise;
+      const transaction = db.transaction(this.storeName, "readonly");
+      const store = transaction.store;
+
+      const totalCount = await store.count();
+
+      await transaction.done;
+
+      if (this.debug) {
+        console.debug(`Total entries in cache: ${totalCount}`);
+      }
+
+      return totalCount;
+    } catch (error) {
+      console.error("Error in count():", error);
+      if (error instanceof DatabaseError) {
+        throw error;
+      }
+      throw new DatabaseError("Failed to count items in the cache.");
     }
+  }
 
-    this.pendingRequests.forEach((pending, requestId) => {
-      pending.reject(
-        new IDBCacheError("IDBCache instance is being destroyed.")
-      );
-      this.pendingRequests.delete(requestId);
-    });
+  /**
+   * Clears all items from the cache without affecting the worker or pending requests.
+   * @throws {DatabaseError} If there is an issue accessing the database.
+   */
+  async clear(): Promise<void> {
+    try {
+      const db = await this.dbReadyPromise;
+      const transaction = db.transaction(this.storeName, "readwrite");
+      const store = transaction.store;
 
-    if (this.port) {
-      this.port.postMessage({ type: "destroy" });
-      this.port.close();
-      this.port = null;
+      await store.clear();
+
+      await transaction.done;
+
+      if (this.debug) {
+        console.debug("All items have been cleared from the cache.");
+      }
+    } catch (error) {
+      console.error("Error in clear:", error);
+      if (error instanceof DatabaseError) {
+        throw error;
+      }
+      if (error instanceof IDBCacheError) {
+        throw error;
+      }
+      throw new DatabaseError("Failed to clear the cache.");
     }
+  }
 
-    if (this.worker) {
-      this.worker.terminate();
-      this.worker = null;
+  /**
+   * Destroys the IDBCache instance by clearing data (optional), releasing resources, and terminating the worker.
+   * @param options - Configuration options for destruction.
+   * @param options.clearData - Whether to clear all cached data before destruction.
+   * @throws {DatabaseError} If there is an issue accessing the database during data clearing.
+   */
+  public async destroy(options?: { clearData?: boolean }): Promise<void> {
+    const { clearData = false } = options || {};
+
+    try {
+      if (clearData) {
+        await this.clear();
+      }
+
+      if (this.cleanupIntervalId !== undefined) {
+        clearInterval(this.cleanupIntervalId);
+      }
+
+      this.pendingRequests.forEach((pending, requestId) => {
+        pending.reject(
+          new IDBCacheError("IDBCache instance is being destroyed.")
+        );
+        this.pendingRequests.delete(requestId);
+      });
+
+      if (this.port) {
+        this.port.postMessage({ type: "destroy" });
+        this.port.close();
+        this.port = null;
+      }
+
+      if (this.worker) {
+        this.worker.terminate();
+        this.worker = null;
+      }
+
+      this.workerReadyPromise = null;
+
+      if (this.debug) {
+        console.debug("IDBCache instance has been destroyed.");
+      }
+    } catch (error) {
+      console.error("Error in destroy:", error);
+      if (error instanceof IDBCacheError) {
+        throw error;
+      }
+      throw new IDBCacheError("Failed to destroy the cache instance.");
     }
-
-    this.workerReadyPromise = null;
   }
 }

@@ -7,6 +7,7 @@ interface AsyncStorage {
   getItem: (key: string) => Promise<string | null>;
   setItem: (key: string, value: string) => Promise<unknown>;
   removeItem: (key: string) => Promise<void>;
+  clear: () => Promise<void>;
 }
 ```
 
@@ -46,6 +47,9 @@ console.log(token); // Outputs: 'value'
 
 // Remove an item
 await cache.removeItem('key');
+
+// Clears all items from cache
+cache.clear();
 
 // Destroy the cache instance
 cache.destroy();

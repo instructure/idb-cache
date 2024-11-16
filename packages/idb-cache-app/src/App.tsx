@@ -1,7 +1,7 @@
 import "./App.css";
 import { IDBCache } from "@instructure/idb-cache";
 import { useCallback, useState } from "react";
-import { uuid, deterministicHash, generateTextOfSize } from "./utils";
+import { deterministicHash, generateTextOfSize } from "./utils";
 import { Button } from "@instructure/ui-buttons";
 import { Metric } from "@instructure/ui-metric";
 import { View } from "@instructure/ui-view";
@@ -13,13 +13,13 @@ import { NumberInput } from "@instructure/ui-number-input";
 //   Do *not* store cacheKey to localStorage in production.
 let cacheKey: string = localStorage.cacheKey;
 if (!cacheKey) {
-	cacheKey = uuid();
+	cacheKey = crypto.randomUUID();
 	localStorage.cacheKey = cacheKey;
 }
 
 let cacheBuster: string = localStorage.cacheBuster;
 if (!cacheBuster) {
-	cacheBuster = uuid();
+	cacheBuster = crypto.randomUUID();
 	localStorage.cacheBuster = cacheBuster;
 }
 
@@ -54,12 +54,20 @@ const App = () => {
 	const [timeToGenerate, setTimeToGenerate] = useState<number | null>(null);
 	const [setTime, setSetTime] = useState<number | null>(null);
 	const [getTime, setGetTime] = useState<number | null>(null);
+	const [countTime, setCountTime] = useState<number | null>(null);
+	const [clearTime, setClearTime] = useState<number | null>(null);
 	const [itemSize, setItemSize] = useState<number>(initialItemSize);
+	const [itemCount, setItemCount] = useState<number | null>(null);
+	const [randomKey, generateRandomKey] = useState<string>(() =>
+		crypto.randomUUID(),
+	);
 
 	const encryptAndStore = useCallback(async () => {
+		const key = crypto.randomUUID();
+		generateRandomKey(key);
 		const start1 = performance.now();
 		const paragraphs = Array.from({ length: DEFAULT_NUM_ITEMS }, (_, index) =>
-			generateTextOfSize(itemSize, `${cacheBuster}-${index}`),
+			generateTextOfSize(itemSize, `${cacheBuster}-${key}-${index}`),
 		);
 		const end1 = performance.now();
 		setTimeToGenerate(end1 - start1);
@@ -67,7 +75,7 @@ const App = () => {
 		const start2 = performance.now();
 
 		for (let i = 0; i < DEFAULT_NUM_ITEMS; i++) {
-			await cache.setItem(`item-${i}`, paragraphs[i]);
+			await cache.setItem(`item-${key}-${i}`, paragraphs[i]);
 		}
 
 		const end2 = performance.now();
@@ -81,13 +89,32 @@ const App = () => {
 		const start = performance.now();
 
 		for (let i = 0; i < DEFAULT_NUM_ITEMS; i++) {
-			const result = await cache.getItem(`item-${i}`);
+			const result = await cache.getItem(`item-${randomKey}-${i}`);
 			results.push(result);
 		}
 
 		const end = performance.now();
 		setGetTime(end - start);
-		setHash2(results.length > 0 ? deterministicHash(results.join("")) : null);
+		setHash2(
+			results.filter((x) => x).length > 0
+				? deterministicHash(results.join(""))
+				: null,
+		);
+	}, [randomKey]);
+
+	const count = useCallback(async () => {
+		const start = performance.now();
+		const count = await cache.count();
+		const end = performance.now();
+		setCountTime(end - start);
+		setItemCount(count);
+	}, []);
+
+	const clear = useCallback(async () => {
+		const start = performance.now();
+		await cache.clear();
+		const end = performance.now();
+		setClearTime(end - start);
 	}, []);
 
 	return (
@@ -298,6 +325,85 @@ const App = () => {
 														renderValue={hash2 || <BlankStat />}
 													/>
 												</Flex.Item>
+											</Flex>
+										</View>
+									</Flex>
+								</View>
+
+								<View
+									as="span"
+									display="inline-block"
+									margin="none"
+									padding="medium"
+									background="primary"
+									shadow="resting"
+								>
+									<Flex direction="column">
+										<Button color="primary" onClick={count}>
+											count
+										</Button>
+
+										<View padding="medium 0 0 0">
+											<Flex>
+												<Flex.Item size="33.3%">&nbsp;</Flex.Item>
+												<Flex.Item shouldGrow>
+													<Metric
+														renderLabel="clear"
+														renderValue={
+															countTime !== null ? (
+																`${Math.round(countTime)} ms`
+															) : (
+																<BlankStat />
+															)
+														}
+													/>
+												</Flex.Item>
+												<Flex.Item size="33.3%">
+													<Metric
+														renderLabel="chunks"
+														renderValue={
+															typeof itemCount === "number" ? (
+																itemCount
+															) : (
+																<BlankStat />
+															)
+														}
+													/>
+												</Flex.Item>
+											</Flex>
+										</View>
+									</Flex>
+								</View>
+
+								<View
+									as="span"
+									display="inline-block"
+									margin="none"
+									padding="medium"
+									background="primary"
+									shadow="resting"
+								>
+									<Flex direction="column">
+										<Button color="primary" onClick={clear}>
+											clear
+										</Button>
+
+										<View padding="medium 0 0 0">
+											<Flex>
+												<Flex.Item size="33.3%">&nbsp;</Flex.Item>
+												<Flex.Item shouldGrow>
+													<Metric
+														renderLabel="clear"
+														renderValue={
+															clearTime !== null ? (
+																`${Math.round(clearTime)} ms`
+															) : (
+																<BlankStat />
+															)
+														}
+													/>
+												</Flex.Item>
+												<Flex.Item size="33.3%">&nbsp;</Flex.Item>
 											</Flex>
 										</View>
 									</Flex>
