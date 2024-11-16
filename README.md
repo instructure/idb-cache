@@ -48,6 +48,9 @@ console.log(token); // Outputs: 'value'
 // Remove an item
 await cache.removeItem('key');
 
+// Count stored chunks
+const totalChunks = await cache.count();
+
 // Clears all items from cache
 cache.clear();
 
