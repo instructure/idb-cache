@@ -5,7 +5,8 @@
 	"scripts": {
 		"dev": "rsbuild dev --open",
 		"build": "rsbuild build",
-		"preview": "rsbuild preview"
+		"preview": "rsbuild preview",
+		"test": "playwright test"
 	},
 	"dependencies": {
 		"@instructure/idb-cache": "workspace:*",
@@ -14,7 +15,6 @@
 		"react-dom": "^18.3.1"
 	},
 	"devDependencies": {
-		"@playwright/test": "^1.48.2",
 		"@instructure/ui": "^9.9.0",
 		"@instructure/ui-buttons": "^9.9.0",
 		"@instructure/ui-flex": "^9.9.0",
@@ -23,12 +23,15 @@
 		"@instructure/ui-number-input": "^9.9.0",
 		"@instructure/ui-text-input": "^9.9.0",
 		"@instructure/ui-view": "^9.9.0",
+		"@playwright/test": "^1.48.2",
 		"@rsbuild/core": "^1.0.19",
 		"@rsbuild/plugin-react": "^1.0.6",
 		"@types/random-seed": "^0.3.5",
 		"@types/react": "^18.3.12",
 		"@types/react-dom": "^18.3.1",
 		"daisyui": "^4.12.14",
+		"idb": "^8.0.0",
+		"playwright": "^1.48.2",
 		"tailwindcss": "^3.4.15",
 		"typescript": "^5.6.3"
 	}

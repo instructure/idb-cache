@@ -13,10 +13,6 @@ importers:
         version: 1.9.4
 
   packages/idb-cache:
-    dependencies:
-      idb:
-        specifier: ^8.0.0
-        version: 8.0.0
     devDependencies:
       '@rslib/core':
         specifier: ^0.0.15
@@ -24,6 +20,9 @@ importers:
       '@types/node':
         specifier: ^22.9.0
         version: 22.9.0
+      idb:
+        specifier: ^8.0.0
+        version: 8.0.0
       typescript:
         specifier: ^5.6.3
         version: 5.6.3
@@ -88,6 +87,12 @@ importers:
       daisyui:
         specifier: ^4.12.14
         version: 4.12.14(postcss@8.4.49)
+      idb:
+        specifier: ^8.0.0
+        version: 8.0.0
+      playwright:
+        specifier: ^1.48.2
+        version: 1.48.2
       tailwindcss:
         specifier: ^3.4.15
         version: 3.4.15

@@ -26,12 +26,12 @@
 		"biome:check": "biome check . --write"
 	},
 	"peerDependencies": {
-		"@rslib/core": "^0.0.15",
-		"idb": "^8.0.0"
+		"@rslib/core": "^0.0.15"
 	},
 	"devDependencies": {
 		"@rslib/core": "^0.0.15",
 		"@types/node": "^22.9.0",
+		"idb": "^8.0.0",
 		"typescript": "^5.6.3"
 	}
 }

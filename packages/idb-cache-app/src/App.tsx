@@ -1,6 +1,6 @@
 import "./App.css";
 import { IDBCache } from "@instructure/idb-cache";
-import { useCallback, useState } from "react";
+import { useCallback, useRef, useState, useEffect } from "react";
 import { deterministicHash, generateTextOfSize } from "./utils";
 import { Button } from "@instructure/ui-buttons";
 import { Metric } from "@instructure/ui-metric";
@@ -10,7 +10,7 @@ import { Heading } from "@instructure/ui-heading";
 import { NumberInput } from "@instructure/ui-number-input";
 
 // For demonstration/testing purposes.
-//   Do *not* store cacheKey to localStorage in production.
+// Do *not* store cacheKey to localStorage in production.
 let cacheKey: string = localStorage.cacheKey;
 if (!cacheKey) {
 	cacheKey = crypto.randomUUID();
@@ -33,12 +33,20 @@ window.idbCacheInstance = cache;
 
 const DEFAULT_NUM_ITEMS = 1;
 
+// Default item size set to 32KB
 const DEFAULT_ITEM_SIZE = 1024 * 32;
 
-const initialItemSize =
-	Number.parseInt(
-		localStorage.getItem("itemSize") || String(DEFAULT_ITEM_SIZE),
-	) || DEFAULT_ITEM_SIZE;
+const getInitialItemSize = () => {
+	const params = new URLSearchParams(window.location.hash.slice(1));
+	const sizeParam = params.get("size");
+	const sizeInKB = Number.parseInt(sizeParam ?? "0", 10);
+
+	if (!Number.isNaN(sizeInKB) && sizeInKB > 0) {
+		return sizeInKB * 1024;
+	}
+
+	return DEFAULT_ITEM_SIZE;
+};
 
 const BlankStat = () => (
 	<span
@@ -58,18 +66,29 @@ const App = () => {
 	const [getTime, setGetTime] = useState<number | null>(null);
 	const [countTime, setCountTime] = useState<number | null>(null);
 	const [clearTime, setClearTime] = useState<number | null>(null);
-	const [itemSize, setItemSize] = useState<number>(initialItemSize);
+
+	const [itemSize, setItemSize] = useState<number>(getInitialItemSize());
 	const [itemCount, setItemCount] = useState<number | null>(null);
-	const [randomKey, generateRandomKey] = useState<string>(() =>
-		crypto.randomUUID(),
+
+	useEffect(() => {
+		const params = new URLSearchParams(window.location.hash.slice(1));
+		params.set("size", String(Math.round(itemSize / 1024)));
+		window.location.hash = `#${params.toString()}`;
+	}, [itemSize]);
+
+	const keyCounter = useRef(0);
+	const [contentKey, saveContentKey] = useState<string>(() =>
+		deterministicHash(`initial-seed-${keyCounter.current}`),
 	);
 
 	const encryptAndStore = useCallback(async () => {
-		const key = crypto.randomUUID();
-		generateRandomKey(key);
+		const key = deterministicHash(`seed-${keyCounter.current}`);
+		keyCounter.current += 1;
+		saveContentKey(key);
+
 		const start1 = performance.now();
 		const paragraphs = Array.from({ length: DEFAULT_NUM_ITEMS }, (_, index) =>
-			generateTextOfSize(itemSize, `${cacheBuster}-${key}-${index}`),
+			generateTextOfSize(itemSize, `${key}-${index}`),
 		);
 		const end1 = performance.now();
 		setTimeToGenerate(end1 - start1);
@@ -91,7 +110,7 @@ const App = () => {
 		const start = performance.now();
 
 		for (let i = 0; i < DEFAULT_NUM_ITEMS; i++) {
-			const result = await cache.getItem(`item-${randomKey}-${i}`);
+			const result = await cache.getItem(`item-${contentKey}-${i}`);
 			results.push(result);
 		}
 
@@ -102,7 +121,7 @@ const App = () => {
 				? deterministicHash(results.join(""))
 				: null,
 		);
-	}, [randomKey]);
+	}, [contentKey]);
 
 	const count = useCallback(async () => {
 		const start = performance.now();
@@ -199,33 +218,22 @@ const App = () => {
 								<Flex gap="medium">
 									<Flex.Item shouldGrow>
 										<NumberInput
-											renderLabel="Size of data (kb):"
+											renderLabel="Size of data (KB):"
 											onChange={(e) => {
 												const newValue = Math.max(
-													Number.parseInt(e.target.value) * 1024,
+													Number.parseInt(e.target.value, 10) * 1024,
 													1024,
 												);
 												setItemSize(newValue);
-												localStorage.setItem("itemSize", String(newValue));
 											}}
 											onIncrement={() => {
-												const newValue = Math.max(
-													Math.round(itemSize) + 1 * 1024,
-													1024,
-												);
-												setItemSize(newValue);
-												localStorage.setItem("itemSize", String(newValue));
+												setItemSize((prev) => Math.max(prev + 1024, 1024));
 											}}
 											onDecrement={() => {
-												const newValue = Math.max(
-													Math.round(itemSize) - 1 * 1024,
-													1024,
-												);
-												setItemSize(newValue);
-												localStorage.setItem("itemSize", String(newValue));
+												setItemSize((prev) => Math.max(prev - 1024, 1024));
 											}}
 											isRequired
-											value={Math.round(itemSize / 1024)}
+											value={Math.round(itemSize / 1024)} // Display in KB
 										/>
 									</Flex.Item>
 									<Flex.Item shouldGrow>
@@ -244,6 +252,7 @@ const App = () => {
 								Performance Tests
 							</legend>
 							<div className="flex flex-col gap-4">
+								{/* setItem Performance */}
 								<View
 									as="span"
 									display="inline-block"
@@ -260,10 +269,10 @@ const App = () => {
 											<Flex>
 												<Flex.Item size="33.3%">
 													<Metric
-														renderLabel="generate test data"
+														renderLabel="Generate Test Data"
 														renderValue={
-															setTime !== null ? (
-																`${Math.round(timeToGenerate || 0)} ms`
+															timeToGenerate !== null ? (
+																`${Math.round(timeToGenerate)} ms`
 															) : (
 																<BlankStat />
 															)
@@ -284,7 +293,7 @@ const App = () => {
 												</Flex.Item>
 												<Flex.Item size="33.3%">
 													<Metric
-														renderLabel="hash"
+														renderLabel="Hash"
 														renderValue={hash1 || <BlankStat />}
 													/>
 												</Flex.Item>
@@ -293,6 +302,7 @@ const App = () => {
 									</Flex>
 								</View>
 
+								{/* getItem Performance */}
 								<View
 									as="span"
 									display="inline-block"
@@ -323,7 +333,7 @@ const App = () => {
 												</Flex.Item>
 												<Flex.Item size="33.3%">
 													<Metric
-														renderLabel="hash"
+														renderLabel="Hash"
 														renderValue={hash2 || <BlankStat />}
 													/>
 												</Flex.Item>
@@ -332,6 +342,7 @@ const App = () => {
 									</Flex>
 								</View>
 
+								{/* count Performance */}
 								<View
 									as="span"
 									display="inline-block"
@@ -350,7 +361,7 @@ const App = () => {
 												<Flex.Item size="33.3%">&nbsp;</Flex.Item>
 												<Flex.Item shouldGrow>
 													<Metric
-														renderLabel="clear"
+														renderLabel="count"
 														renderValue={
 															countTime !== null ? (
 																`${Math.round(countTime)} ms`
@@ -362,7 +373,7 @@ const App = () => {
 												</Flex.Item>
 												<Flex.Item size="33.3%">
 													<Metric
-														renderLabel="chunks"
+														renderLabel="Chunks"
 														renderValue={
 															typeof itemCount === "number" ? (
 																itemCount
@@ -377,6 +388,7 @@ const App = () => {
 									</Flex>
 								</View>
 
+								{/* clear Performance */}
 								<View
 									as="span"
 									display="inline-block"

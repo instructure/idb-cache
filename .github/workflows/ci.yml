@@ -1,0 +1,120 @@
+name: "Run Playwright tests"
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+      - 'releases/*'
+  workflow_dispatch:
+
+jobs:
+  test-linux:
+    name: Playwright tests on Linux (headless=${{ matrix.headless }})
+    runs-on: ubuntu-22.04
+
+    strategy:
+      fail-fast: false
+      matrix:
+        headless: [true]
+
+    steps:
+      # 1. Checkout the repository
+      - uses: actions/checkout@v3
+
+      # 2. Setup Node.js
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '20'
+
+      # 3. Setup pnpm
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v2
+        with:
+          version: 7.x
+
+      # 4. Cache pnpm dependencies
+      - name: Cache pnpm dependencies
+        uses: actions/cache@v3
+        with:
+          path: |
+            ~/.pnpm-store
+            node_modules
+          key: ${{ runner.os }}-pnpm-store-${{ hashFiles('**/pnpm-lock.yaml') }}
+          restore-keys: |
+            ${{ runner.os }}-pnpm-store-
+
+      # 5. Cache Playwright browsers
+      - name: Cache Playwright browsers
+        uses: actions/cache@v3
+        with:
+          path: ~/.cache/ms-playwright
+          key: ${{ runner.os }}-playwright-${{ hashFiles('**/package.json', '**/playwright.config.*') }}
+          restore-keys: |
+            ${{ runner.os }}-playwright-
+
+      # 6. Install dependencies
+      - name: Install dependencies
+        run: pnpm install
+
+      # 7. Cache build output for idb-cache package
+      - name: Cache idb-cache build output
+        uses: actions/cache@v3
+        with:
+          path: packages/idb-cache/dist
+          key: ${{ runner.os }}-idb-cache-build-${{ hashFiles('packages/idb-cache/**/*.ts') }}
+          restore-keys: |
+            ${{ runner.os }}-idb-cache-build-
+
+      # 8. Build the @instructure/idb-cache package
+      - name: Build idb-cache package
+        run: pnpm --filter @instructure/idb-cache build
+
+      # 9. Cache build output for idb-cache-app
+      - name: Cache idb-cache-app build output
+        uses: actions/cache@v3
+        with:
+          path: apps/idb-cache-app/dist
+          key: ${{ runner.os }}-idb-cache-app-build-${{ hashFiles('apps/idb-cache-app/**/*.ts') }}
+          restore-keys: |
+            ${{ runner.os }}-idb-cache-app-build-
+
+      # 10. Build the idb-cache-app
+      - name: Build idb-cache-app
+        run: pnpm --filter idb-cache-app build
+
+      # 11. Install Playwright browsers
+      - name: Install Playwright browsers
+        run: pnpm --filter idb-cache-app exec playwright install
+
+      # 12. Serve the idb-cache-app
+      - name: Serve idb-cache-app
+        run: pnpm --filter idb-cache-app preview -- --port 3000 &
+        # The '&' runs the serve command in the background
+
+      # 13. Wait for the server to be ready
+      - name: Wait for idb-cache-app to be ready
+        run: |
+          for i in {1..60}; do
+            if curl -s http://localhost:3000 > /dev/null; then
+              echo "Server is ready!"
+              exit 0
+            fi
+            echo "Waiting for server to be ready... ($i/60)"
+            sleep 1
+          done
+          echo "Server failed to start in time."
+          exit 1
+
+      # 14. Run Playwright tests in headless mode
+      - name: Run Playwright tests (Headless)
+        if: ${{ matrix.headless == true }}
+        run: pnpm --filter idb-cache-app test
+
+      # 15. Run Playwright tests in headful mode on Linux
+      - name: Run Playwright tests (Headful)
+        if: ${{ matrix.headless == false }}
+        run: |
+          export HEADFUL=true
+          xvfb-run --auto-servernum -- pnpm --filter idb-cache-app test
