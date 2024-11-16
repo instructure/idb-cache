@@ -419,7 +419,7 @@ export class IDBCache implements AsyncStorage {
         const chunk = value.slice(i, i + this.chunkSize);
         const chunkIndex = Math.floor(i / this.chunkSize);
 
-        const chunkHash = await computeChunkHash(chunk);
+        const chunkHash = await computeChunkHash(chunk, this.cacheBuster);
         const chunkKey = generateChunkKey(baseKey, chunkIndex, chunkHash);
         newChunkKeys.add(chunkKey);
 

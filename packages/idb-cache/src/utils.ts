@@ -56,9 +56,12 @@ export function generateChunkKey(
   return `${baseKey}-chunk-${String(chunkIndex).padStart(6, "0")}-${chunkHash}`;
 }
 
-export async function computeChunkHash(chunk: string): Promise<string> {
+export async function computeChunkHash(
+  chunk: string,
+  cacheBuster: string
+): Promise<string> {
   const encoder = new TextEncoder();
-  const data = encoder.encode(chunk);
+  const data = encoder.encode(`${cacheBuster}:${chunk}`);
   const hashBuffer = await crypto.subtle.digest("SHA-512", data);
   const hashArray = Array.from(new Uint8Array(hashBuffer));
   const hashHex = hashArray
