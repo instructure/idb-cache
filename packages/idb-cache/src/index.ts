@@ -45,6 +45,13 @@ interface IDBCacheConfig {
   debug?: boolean;
   pbkdf2Iterations?: number;
   gcTime?: number;
+  /**
+   * The maximum number of chunks to store in the cache.
+   * If set, during cleanup intervals, the cache will ensure that no more than maxChunks are stored.
+   * Excess oldest chunks will be removed to enforce this limit.
+   * Defaults to undefined, meaning no limit.
+   */
+  maxChunks?: number;
 }
 
 export interface AsyncStorage {
@@ -73,6 +80,7 @@ export class IDBCache implements AsyncStorage {
   private pbkdf2Iterations: number;
   private cacheBuster: string;
   private debug: boolean;
+  private maxChunks?: number;
 
   constructor(config: IDBCacheConfig) {
     const {
@@ -84,16 +92,18 @@ export class IDBCache implements AsyncStorage {
       chunkSize = DEFAULT_CHUNK_SIZE,
       cleanupInterval = CLEANUP_INTERVAL,
       pbkdf2Iterations = DEFAULT_PBKDF2_ITERATIONS,
+      maxChunks,
     } = config;
 
     this.storeName = "cache";
     this.cacheKey = cacheKey;
+    this.cacheBuster = cacheBuster;
     this.debug = debug;
     this.gcTime = gcTime;
     this.chunkSize = chunkSize;
     this.cleanupInterval = cleanupInterval;
     this.pbkdf2Iterations = pbkdf2Iterations;
-    this.cacheBuster = cacheBuster;
+    this.maxChunks = maxChunks;
     this.pendingRequests = new Map();
 
     if (!window.indexedDB)
@@ -108,14 +118,17 @@ export class IDBCache implements AsyncStorage {
       DB_VERSION
     );
 
-    this.cleanupIntervalId = window.setInterval(
-      this.cleanupExpiredItems.bind(this),
-      this.cleanupInterval
-    );
+    this.cleanupIntervalId = window.setInterval(async () => {
+      try {
+        await this.cleanupCache(); // Call the consolidated cleanupCache
+      } catch (error) {
+        console.error("Error during cleanup:", error);
+      }
+    }, this.cleanupInterval);
 
     this.initWorker(cacheKey, cacheBuster)
       .then(() => {
-        this.cleanupExpiredItems().catch((error) =>
+        this.cleanupCache().catch((error) =>
           console.error("Initial cleanup failed:", error)
         );
         this.flushBustedCacheItems().catch((error) =>
@@ -232,42 +245,76 @@ export class IDBCache implements AsyncStorage {
   }
 
   /**
-   * Cleans up expired items from the IndexedDB store based on their timestamps.
+   * Cleans up the cache by removing expired items and enforcing the maxChunks limit.
+   * This method consolidates the functionality of cleanupExpiredItems and cleanupExcessChunks.
    * @throws {DatabaseError} If there is an issue accessing the database.
    */
-  private async cleanupExpiredItems() {
+  private async cleanupCache(): Promise<void> {
     try {
       const db = await this.dbReadyPromise;
       const transaction = db.transaction(this.storeName, "readwrite");
       const store = transaction.store;
-      const index = store.index("byTimestamp");
+      const timestampIndex = store.index("byTimestamp");
+      const cacheBusterIndex = store.index("byCacheBuster");
       const now = Date.now();
 
-      let cursor = await index.openCursor();
-
+      // 1. Remove expired items
+      let cursor = await timestampIndex.openCursor();
       while (cursor) {
         const { timestamp } = cursor.value;
         if (timestamp <= now) {
           const age = now - timestamp;
           if (this.debug) {
             console.debug(
-              `Deleting item with timestamp ${timestamp}. It is ${age}ms older than the expiration.`
+              `Deleting expired item with timestamp ${timestamp}. It is ${age}ms older than the expiration.`
             );
           }
           await cursor.delete();
         } else {
-          break;
+          break; // Since the index is ordered, no need to check further
         }
         cursor = await cursor.continue();
       }
 
+      // 2. Enforce maxChunks limit
+      if (this.maxChunks !== undefined) {
+        const totalChunks = await store.count();
+        if (totalChunks > this.maxChunks) {
+          const excess = totalChunks - this.maxChunks;
+          if (this.debug) {
+            console.debug(
+              `Total chunks (${totalChunks}) exceed maxChunks (${this.maxChunks}). Deleting ${excess} oldest chunks.`
+            );
+          }
+
+          let excessDeleted = 0;
+          let excessCursor = await timestampIndex.openCursor(null, "next"); // Ascending order (oldest first)
+
+          while (excessCursor && excessDeleted < excess) {
+            await excessCursor.delete();
+            excessDeleted++;
+            excessCursor = await excessCursor.continue();
+          }
+
+          if (this.debug) {
+            console.debug(
+              `Deleted ${excessDeleted} oldest chunks to enforce maxChunks.`
+            );
+          }
+        } else if (this.debug) {
+          console.debug(
+            `Total chunks (${totalChunks}) within maxChunks (${this.maxChunks}). No excess cleanup needed.`
+          );
+        }
+      }
+
       await transaction.done;
     } catch (error) {
-      console.error("Error during cleanupExpiredItems:", error);
+      console.error("Error during cleanupCache:", error);
       if (error instanceof DatabaseError) {
         throw error;
       }
-      throw new DatabaseError("Failed to clean up expired items.");
+      throw new DatabaseError("Failed to clean up the cache.");
     }
   }
 

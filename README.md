@@ -32,6 +32,7 @@ const cache = new IDBCache({
   cacheBuster: 'unique-cache-buster', // Doubles as salt
   // dbName?: string;
   // chunkSize?: number;
+  // maxChunks?: number
   // cleanupInterval?: number;
   // pbkdf2Iterations?: number;
   // gcTime?: number;
