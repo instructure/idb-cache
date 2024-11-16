@@ -1,0 +1,62 @@
+name: TypeScript Check
+
+on:
+  push:
+    branches:
+      - main
+      - 'releases/*'
+  pull_request:
+    branches:
+      - main
+      - 'releases/*'
+  workflow_dispatch:
+
+jobs:
+  type-check:
+    name: Run TypeScript Check for idb-cache
+    runs-on: ubuntu-22.04
+
+    steps:
+      # 1. Checkout the repository
+      - uses: actions/checkout@v3
+
+      # 2. Setup Node.js
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '20'
+
+      # 3. Setup pnpm
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v2
+        with:
+          version: 7.x
+
+      # 4: Cache pnpm dependencies (pnpm store and node_modules)
+      - name: Cache pnpm dependencies
+        uses: actions/cache@v3
+        with:
+          path: |
+            ~/.pnpm-store
+            node_modules
+          key: ${{ runner.os }}-pnpm-store-${{ hashFiles('**/pnpm-lock.yaml') }}
+          restore-keys: |
+            ${{ runner.os }}-pnpm-store-
+
+      # 5: Install dependencies
+      - name: Install dependencies
+        run: pnpm install
+
+      # 6: Run TypeScript Check and Save Logs
+      - name: Run TypeScript Check
+        run: |
+          mkdir -p logs
+          pnpm --filter packages/idb-cache typescript:check > logs/typescript-errors.log 2>&1 || true
+
+      # 7: Upload TypeScript Logs (on failure)
+      - name: Upload TypeScript Logs
+        if: failure()
+        uses: actions/upload-artifact@v3
+        with:
+          name: typescript-errors
+          path: logs/typescript-errors.log
