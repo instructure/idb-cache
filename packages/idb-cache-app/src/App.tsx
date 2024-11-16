@@ -8,6 +8,7 @@ import { View } from "@instructure/ui-view";
 import { Flex } from "@instructure/ui-flex";
 import { Heading } from "@instructure/ui-heading";
 import { NumberInput } from "@instructure/ui-number-input";
+import { TextInput } from "@instructure/ui-text-input";
 import GitHubLink from "./components/GitHubLink";
 import BlankStat from "./components/BlankStat";
 
@@ -141,273 +142,289 @@ const App = () => {
 					</Heading>
 
 					<form>
-						<fieldset className="border border-gray-300 rounded-lg p-4 mb-6">
-							<legend className="text-lg font-semibold text-gray-700">
-								Test Configuration
-							</legend>
-							<Flex direction="column" gap="small">
-								<div className="flex items-center justify-between">
-									<span>
-										Cache key: <code className="text-sm">{cacheKey}</code>
-									</span>
-									<Button
-										data-testid="reset-cacheKey"
-										onClick={() => {
-											localStorage.removeItem("cacheKey");
-											window.location.reload();
-										}}
-									>
-										Reset
-									</Button>
-								</div>
-								<div className="flex items-center justify-between">
-									<span>
-										Cache buster: <code className="text-sm">{cacheBuster}</code>
-									</span>
-									<Button
-										data-testid="reset-cacheBuster"
-										onClick={() => {
-											localStorage.removeItem("cacheBuster");
-											window.location.reload();
-										}}
-									>
-										Reset
-									</Button>
-								</div>
-
-								<Flex gap="medium">
-									<Flex.Item shouldGrow>
-										<NumberInput
-											renderLabel="Size of data (KB):"
-											onChange={(e) => {
-												const newValue = Math.max(
-													Number.parseInt(e.target.value, 10) * 1024,
-													1024,
-												);
-												setItemSize(newValue);
-											}}
-											onIncrement={() => {
-												setItemSize((prev) => Math.max(prev + 1024, 1024));
-											}}
-											onDecrement={() => {
-												setItemSize((prev) => Math.max(prev - 1024, 1024));
-											}}
-											isRequired
-											value={Math.round(itemSize / 1024)} // Display in KB
-										/>
+						<Flex direction="column" gap="small">
+							<Flex.Item>
+								<Flex gap="medium" justifyItems="space-between">
+									<Flex.Item width="48%">
+										<Flex direction="row" alignItems="end" margin="xx-small 0">
+											<Flex.Item shouldGrow>
+												<TextInput
+													renderLabel="Cache key:"
+													interaction="disabled"
+													value={cacheKey}
+												/>
+											</Flex.Item>
+											<Flex.Item>
+												<Button
+													aria-label="Reset cache key"
+													margin="0 0 0 xxx-small"
+													data-testid="reset-cacheKey"
+													onClick={() => {
+														localStorage.removeItem("cacheKey");
+														window.location.reload();
+													}}
+												>
+													Reset
+												</Button>
+											</Flex.Item>
+										</Flex>
 									</Flex.Item>
-									<Flex.Item shouldGrow>
-										<NumberInput
-											renderLabel="Number of chunks:"
-											interaction="disabled"
-											value={Math.ceil(itemSize / 25000)}
-										/>
+									<Flex.Item width="48%">
+										<Flex direction="row" alignItems="end" margin="xx-small 0">
+											<Flex.Item shouldGrow>
+												<TextInput
+													renderLabel="Cache buster:"
+													interaction="disabled"
+													value={cacheBuster}
+												/>
+											</Flex.Item>
+											<Flex.Item>
+												<Button
+													aria-label="Reset cache buster"
+													margin="0 0 0 xxx-small"
+													data-testid="reset-cacheBuster"
+													onClick={() => {
+														localStorage.removeItem("cacheBuster");
+														window.location.reload();
+													}}
+												>
+													Reset
+												</Button>
+											</Flex.Item>
+										</Flex>
 									</Flex.Item>
 								</Flex>
+							</Flex.Item>
+
+							<Flex justifyItems="space-between">
+								<Flex.Item width="48%">
+									<NumberInput
+										renderLabel="Size of data (KB):"
+										onChange={(e) => {
+											const newValue = Math.max(
+												Number.parseInt(e.target.value, 10) * 1024,
+												1024,
+											);
+											setItemSize(newValue);
+										}}
+										onIncrement={() => {
+											setItemSize((prev) => Math.max(prev + 1024, 1024));
+										}}
+										onDecrement={() => {
+											setItemSize((prev) => Math.max(prev - 1024, 1024));
+										}}
+										isRequired
+										value={Math.round(itemSize / 1024)} // Display in KB
+									/>
+								</Flex.Item>
+								<Flex.Item width="48%">
+									<NumberInput
+										renderLabel="Number of chunks:"
+										interaction="disabled"
+										value={Math.ceil(itemSize / 25000)}
+									/>
+								</Flex.Item>
 							</Flex>
-						</fieldset>
+						</Flex>
 
-						<fieldset className="border border-gray-300 rounded-lg p-4">
-							<legend className="text-lg font-semibold text-gray-700">
-								Performance Tests
-							</legend>
-							<div className="flex flex-col gap-4">
-								{/* setItem Performance */}
-								<View
-									as="span"
-									display="inline-block"
-									margin="none"
-									padding="medium"
-									background="primary"
-									shadow="resting"
+						<Heading level="h2" margin="medium 0 small 0">
+							Tests
+						</Heading>
+
+						{/* setItem Performance */}
+						<View
+							as="div"
+							display="block"
+							margin="small none"
+							padding="medium"
+							background="primary"
+							shadow="resting"
+						>
+							<Flex direction="column">
+								<Button
+									data-testid="set-item-button"
+									color="primary"
+									onClick={encryptAndStore}
 								>
-									<Flex direction="column">
-										<Button
-											data-testid="set-item-button"
-											color="primary"
-											onClick={encryptAndStore}
-										>
-											setItem
-										</Button>
-										<View padding="medium 0 0 0">
-											<Flex>
-												<Flex.Item size="33.3%">
-													<Metric
-														renderLabel="Generate Test Data"
-														data-testid="generate-time"
-														renderValue={
-															timeToGenerate !== null ? (
-																`${Math.round(timeToGenerate)} ms`
-															) : (
-																<BlankStat />
-															)
-														}
-													/>
-												</Flex.Item>
-												<Flex.Item shouldGrow>
-													<Metric
-														renderLabel="setItem"
-														data-testid="set-time"
-														renderValue={
-															setTime !== null ? (
-																`${Math.round(setTime)} ms`
-															) : (
-																<BlankStat />
-															)
-														}
-													/>
-												</Flex.Item>
-												<Flex.Item size="33.3%">
-													<Metric
-														data-testid="hash1"
-														renderLabel="Hash"
-														renderValue={hash1 || <BlankStat />}
-													/>
-												</Flex.Item>
-											</Flex>
-										</View>
+									setItem
+								</Button>
+								<View padding="medium 0 0 0">
+									<Flex>
+										<Flex.Item size="33.3%">
+											<Metric
+												renderLabel="Generate Test Data"
+												data-testid="generate-time"
+												renderValue={
+													timeToGenerate !== null ? (
+														`${Math.round(timeToGenerate)} ms`
+													) : (
+														<BlankStat />
+													)
+												}
+											/>
+										</Flex.Item>
+										<Flex.Item shouldGrow>
+											<Metric
+												renderLabel="setItem"
+												data-testid="set-time"
+												renderValue={
+													setTime !== null ? (
+														`${Math.round(setTime)} ms`
+													) : (
+														<BlankStat />
+													)
+												}
+											/>
+										</Flex.Item>
+										<Flex.Item size="33.3%">
+											<Metric
+												data-testid="hash1"
+												renderLabel="Hash"
+												renderValue={hash1 || <BlankStat />}
+											/>
+										</Flex.Item>
 									</Flex>
 								</View>
+							</Flex>
+						</View>
 
-								{/* getItem Performance */}
-								<View
-									as="span"
-									display="inline-block"
-									margin="none"
-									padding="medium"
-									background="primary"
-									shadow="resting"
+						{/* getItem Performance */}
+						<View
+							as="div"
+							display="block"
+							margin="small none"
+							padding="medium"
+							background="primary"
+							shadow="resting"
+						>
+							<Flex direction="column">
+								<Button
+									data-testid="get-item-button"
+									color="primary"
+									onClick={retrieveAndDecrypt}
 								>
-									<Flex direction="column">
-										<Button
-											data-testid="get-item-button"
-											color="primary"
-											onClick={retrieveAndDecrypt}
-										>
-											getItem
-										</Button>
+									getItem
+								</Button>
 
-										<View padding="medium 0 0 0">
-											<Flex>
-												<Flex.Item size="33.3%">&nbsp;</Flex.Item>
-												<Flex.Item shouldGrow>
-													<Metric
-														renderLabel="getItem"
-														data-testid="get-time"
-														renderValue={
-															getTime !== null ? (
-																`${Math.round(getTime)} ms`
-															) : (
-																<BlankStat />
-															)
-														}
-													/>
-												</Flex.Item>
-												<Flex.Item size="33.3%">
-													<Metric
-														renderLabel="Hash"
-														data-testid="hash2"
-														renderValue={hash2 || <BlankStat />}
-													/>
-												</Flex.Item>
-											</Flex>
-										</View>
+								<View padding="medium 0 0 0">
+									<Flex>
+										<Flex.Item size="33.3%">&nbsp;</Flex.Item>
+										<Flex.Item shouldGrow>
+											<Metric
+												renderLabel="getItem"
+												data-testid="get-time"
+												renderValue={
+													getTime !== null ? (
+														`${Math.round(getTime)} ms`
+													) : (
+														<BlankStat />
+													)
+												}
+											/>
+										</Flex.Item>
+										<Flex.Item size="33.3%">
+											<Metric
+												renderLabel="Hash"
+												data-testid="hash2"
+												renderValue={hash2 || <BlankStat />}
+											/>
+										</Flex.Item>
 									</Flex>
 								</View>
+							</Flex>
+						</View>
 
-								{/* count Performance */}
-								<View
-									as="span"
-									display="inline-block"
-									margin="none"
-									padding="medium"
-									background="primary"
-									shadow="resting"
+						{/* count Performance */}
+						<View
+							as="div"
+							display="block"
+							margin="small none"
+							padding="medium"
+							background="primary"
+							shadow="resting"
+						>
+							<Flex direction="column">
+								<Button
+									data-testid="count-button"
+									color="primary"
+									onClick={count}
 								>
-									<Flex direction="column">
-										<Button
-											data-testid="count-button"
-											color="primary"
-											onClick={count}
-										>
-											count
-										</Button>
+									count
+								</Button>
 
-										<View padding="medium 0 0 0">
-											<Flex>
-												<Flex.Item size="33.3%">&nbsp;</Flex.Item>
-												<Flex.Item shouldGrow>
-													<Metric
-														data-testid="count-time"
-														renderLabel="count"
-														renderValue={
-															countTime !== null ? (
-																`${Math.round(countTime)} ms`
-															) : (
-																<BlankStat />
-															)
-														}
-													/>
-												</Flex.Item>
-												<Flex.Item size="33.3%">
-													<Metric
-														renderLabel="Chunks"
-														data-testid="count-value"
-														renderValue={
-															typeof itemCount === "number" ? (
-																itemCount
-															) : (
-																<BlankStat />
-															)
-														}
-													/>
-												</Flex.Item>
-											</Flex>
-										</View>
+								<View padding="medium 0 0 0">
+									<Flex>
+										<Flex.Item size="33.3%">&nbsp;</Flex.Item>
+										<Flex.Item shouldGrow>
+											<Metric
+												data-testid="count-time"
+												renderLabel="count"
+												renderValue={
+													countTime !== null ? (
+														`${Math.round(countTime)} ms`
+													) : (
+														<BlankStat />
+													)
+												}
+											/>
+										</Flex.Item>
+										<Flex.Item size="33.3%">
+											<Metric
+												renderLabel="Chunks"
+												data-testid="count-value"
+												renderValue={
+													typeof itemCount === "number" ? (
+														itemCount
+													) : (
+														<BlankStat />
+													)
+												}
+											/>
+										</Flex.Item>
 									</Flex>
 								</View>
+							</Flex>
+						</View>
 
-								{/* clear Performance */}
-								<View
-									as="span"
-									display="inline-block"
-									margin="none"
-									padding="medium"
-									background="primary"
-									shadow="resting"
+						{/* clear Performance */}
+						<View
+							as="div"
+							display="block"
+							margin="small 0 0 0"
+							padding="medium"
+							background="primary"
+							shadow="resting"
+						>
+							<Flex direction="column">
+								<Button
+									data-testid="clear-button"
+									color="primary"
+									onClick={clear}
 								>
-									<Flex direction="column">
-										<Button
-											data-testid="clear-button"
-											color="primary"
-											onClick={clear}
-										>
-											clear
-										</Button>
+									clear
+								</Button>
 
-										<View padding="medium 0 0 0">
-											<Flex>
-												<Flex.Item size="33.3%">&nbsp;</Flex.Item>
-												<Flex.Item shouldGrow>
-													<Metric
-														renderLabel="clear"
-														data-testid="clear-time"
-														renderValue={
-															clearTime !== null ? (
-																`${Math.round(clearTime)} ms`
-															) : (
-																<BlankStat />
-															)
-														}
-													/>
-												</Flex.Item>
-												<Flex.Item size="33.3%">&nbsp;</Flex.Item>
-											</Flex>
-										</View>
+								<View padding="medium 0 0 0">
+									<Flex>
+										<Flex.Item size="33.3%">&nbsp;</Flex.Item>
+										<Flex.Item shouldGrow>
+											<Metric
+												renderLabel="clear"
+												data-testid="clear-time"
+												renderValue={
+													clearTime !== null ? (
+														`${Math.round(clearTime)} ms`
+													) : (
+														<BlankStat />
+													)
+												}
+											/>
+										</Flex.Item>
+										<Flex.Item size="33.3%">&nbsp;</Flex.Item>
 									</Flex>
 								</View>
-							</div>
-						</fieldset>
+							</Flex>
+						</View>
 					</form>
 				</div>
 			</div>
