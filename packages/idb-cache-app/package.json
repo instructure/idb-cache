@@ -14,6 +14,7 @@
 		"react-dom": "^18.3.1"
 	},
 	"devDependencies": {
+		"@playwright/test": "^1.48.2",
 		"@instructure/ui": "^9.9.0",
 		"@instructure/ui-buttons": "^9.9.0",
 		"@instructure/ui-flex": "^9.9.0",
