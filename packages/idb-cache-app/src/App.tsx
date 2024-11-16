@@ -69,13 +69,16 @@ const App = () => {
 		window.location.hash = `#${params.toString()}`;
 	}, [itemSize]);
 
-	const keyCounter = useRef(0);
+	const keyCounter = useRef(
+		Number.parseInt(localStorage.getItem("keyCounter") || "0") || 0,
+	);
 	const [contentKey, saveContentKey] = useState<string>(() =>
-		deterministicHash(`initial-seed-${keyCounter.current}`),
+		deterministicHash(`seed-${keyCounter.current}`),
 	);
 
 	const encryptAndStore = useCallback(async () => {
 		const key = deterministicHash(`seed-${keyCounter.current}`);
+		localStorage.setItem("keyCounter", String(keyCounter.current));
 		keyCounter.current += 1;
 		saveContentKey(key);
 
@@ -127,6 +130,7 @@ const App = () => {
 	const clear = useCallback(async () => {
 		const start = performance.now();
 		await cache.clear();
+		localStorage.removeItem("keyCounter");
 		const end = performance.now();
 		setClearTime(end - start);
 	}, []);
@@ -161,6 +165,7 @@ const App = () => {
 													data-testid="reset-cacheKey"
 													onClick={() => {
 														localStorage.removeItem("cacheKey");
+														localStorage.removeItem("keyCounter");
 														window.location.reload();
 													}}
 												>
@@ -185,6 +190,7 @@ const App = () => {
 													data-testid="reset-cacheBuster"
 													onClick={() => {
 														localStorage.removeItem("cacheBuster");
+														localStorage.removeItem("keyCounter");
 														window.location.reload();
 													}}
 												>
