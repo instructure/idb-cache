@@ -36,15 +36,26 @@ test("maxChunks and cleanup", async ({ page }) => {
   await page.getByTestId("count-button").click();
   await page.getByTestId("count-button").click();
   await page.getByTestId("count-button").click();
+  await page.getByTestId("count-button").click();
+  await page.getByTestId("count-button").click();
+  await page.getByTestId("count-button").click();
+  await page.getByTestId("count-button").click();
+  await page.getByTestId("count-button").click();
+  await page.getByTestId("count-button").click();
+  await page.getByTestId("count-button").click();
   await expect(page.getByText("52")).toBeVisible();
   await page.getByTestId("set-item-button").click();
   // ensures enough time for IDB to take effect
   await page.getByTestId("count-button").click();
   await page.getByTestId("count-button").click();
   await page.getByTestId("count-button").click();
+  await page.getByTestId("count-button").click();
+  await page.getByTestId("count-button").click();
   await expect(page.getByText("104")).toBeVisible();
   await page.getByTestId("cleanup-button").click();
   // ensures enough time for IDB to take effect
+  await page.getByTestId("count-button").click();
+  await page.getByTestId("count-button").click();
   await page.getByTestId("count-button").click();
   await page.getByTestId("count-button").click();
   await page.getByTestId("count-button").click();
