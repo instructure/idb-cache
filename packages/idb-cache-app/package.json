@@ -21,6 +21,7 @@
 		"@instructure/ui-heading": "^9.9.0",
 		"@instructure/ui-metric": "^9.9.0",
 		"@instructure/ui-number-input": "^9.9.0",
+		"@instructure/ui-responsive": "^9.9.0",
 		"@instructure/ui-text-input": "^9.9.0",
 		"@instructure/ui-view": "^9.9.0",
 		"@playwright/test": "^1.48.2",

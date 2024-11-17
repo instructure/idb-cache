@@ -153,9 +153,15 @@ const App = () => {
 
 			<div className="min-h-screen bg-gray-50 p-8">
 				<View as="div" display="block" width="820px" margin="0 auto">
-					<Heading level="h1" margin="0 0 small 0">
+					<h1
+						style={{
+							fontSize: "clamp(1.8rem, 4vw, 2.4rem)",
+							whiteSpace: "nowrap",
+							marginBottom: "1rem",
+						}}
+					>
 						@instructure/idb-cache
-					</Heading>
+					</h1>
 
 					<form>
 						<WrappedFlexContainer>
