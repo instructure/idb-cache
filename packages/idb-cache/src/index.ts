@@ -213,9 +213,9 @@ export class IDBCache implements AsyncStorage {
               `Deleting expired item with timestamp ${timestamp}. It is ${age}ms older than the expiration.`
             );
           }
-          await cursor.delete();
+          cursor.delete();
         } else {
-          break; // Since the index is ordered, no need to check further
+          break;
         }
         cursor = await cursor.continue();
       }
@@ -236,7 +236,7 @@ export class IDBCache implements AsyncStorage {
               rangeCursor.value.cacheBuster
             );
           }
-          await rangeCursor.delete();
+          rangeCursor.delete();
           itemsDeleted++;
           rangeCursor = await rangeCursor.continue();
         }
@@ -252,25 +252,69 @@ export class IDBCache implements AsyncStorage {
       if (this.maxTotalChunks !== undefined) {
         const totalChunks = await store.count();
         if (totalChunks > this.maxTotalChunks) {
-          const excess = totalChunks - this.maxTotalChunks;
+          let excess = totalChunks - this.maxTotalChunks;
           if (this.debug) {
             console.debug(
-              `Total chunks (${totalChunks}) exceed maxTotalChunks (${this.maxTotalChunks}). Deleting ${excess} oldest chunks.`
+              `Total chunks (${totalChunks}) exceed maxTotalChunks (${this.maxTotalChunks}). Deleting entire items until excess (${excess}) is removed.`
             );
           }
 
-          let excessDeleted = 0;
-          let excessCursor = await timestampIndex.openCursor(null, "next"); // Ascending order (oldest first)
+          const baseKeysToDelete: string[] = [];
+          const chunkKeysToDelete: string[] = [];
 
-          while (excessCursor && excessDeleted < excess) {
-            await excessCursor.delete();
-            excessDeleted++;
-            excessCursor = await excessCursor.continue();
+          let cursor = await timestampIndex.openCursor(null, "next"); // Ascending order
+          while (cursor && excess > 0) {
+            const key = cursor.value.key;
+            const baseKeyMatch = key.match(/^(.*)-chunk-\d{6}-.*/);
+            if (!baseKeyMatch) {
+              cursor = await cursor.continue();
+              continue;
+            }
+            const baseKey = baseKeyMatch[1];
+            if (baseKeysToDelete.includes(baseKey)) {
+              cursor = await cursor.continue();
+              continue;
+            }
+
+            // Define key range for this baseKey
+            const lowerBound = `${baseKey}-chunk-000000-`;
+            const upperBound = `${baseKey}-chunk-999999\uffff`;
+            const range = IDBKeyRange.bound(
+              lowerBound,
+              upperBound,
+              false,
+              false
+            );
+
+            // Collect all chunkKeys for this baseKey
+            const chunkKeys: string[] = [];
+            let chunkCursor = await store.openCursor(range);
+            while (chunkCursor) {
+              chunkKeys.push(chunkCursor.value.key);
+              chunkCursor = await chunkCursor.continue();
+            }
+
+            // Add all chunkKeys to be deleted
+            chunkKeysToDelete.push(...chunkKeys);
+
+            // Decrement excess by the number of chunks
+            excess -= chunkKeys.length;
+
+            baseKeysToDelete.push(baseKey);
+            cursor = await cursor.continue();
+          }
+
+          // Delete all collected chunkKeys
+          for (const chunkKey of chunkKeysToDelete) {
+            store.delete(chunkKey);
+            if (this.debug) {
+              console.debug(`Deleted chunk ${chunkKey}.`);
+            }
           }
 
           if (this.debug) {
             console.debug(
-              `Deleted ${excessDeleted} oldest chunks to enforce maxTotalChunks.`
+              `Deleted ${chunkKeysToDelete.length} chunks by removing ${baseKeysToDelete.length} items to enforce maxTotalChunks.`
             );
           }
         } else if (this.debug) {
