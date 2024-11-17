@@ -58,6 +58,7 @@ const App = () => {
 	const [setTime, setSetItemTime] = useState<number | null>(null);
 	const [getTime, setGetItemTime] = useState<number | null>(null);
 	const [countTime, setCountTime] = useState<number | null>(null);
+	const [cleanupTime, setCleanupTime] = useState<number | null>(null);
 	const [clearTime, setClearTime] = useState<number | null>(null);
 
 	const [itemSize, setItemSize] = useState<number>(getInitialItemSize());
@@ -195,6 +196,19 @@ const App = () => {
 				: null,
 		);
 	}, [contentKey]);
+
+	const cleanup = useCallback(async () => {
+		const cache = cacheRef.current;
+		if (!cache) {
+			console.error("Cache is not initialized.");
+			return;
+		}
+
+		const start = performance.now();
+		await cache.cleanup();
+		const end = performance.now();
+		setCleanupTime(end - start);
+	}, []);
 
 	const count = useCallback(async () => {
 		const cache = cacheRef.current;
@@ -447,6 +461,38 @@ const App = () => {
 											}
 										/>
 									</Flex.Item>
+								</Flex>
+							</View>
+						</Test>
+
+						{/* cleanup Performance */}
+						<Test>
+							<Button
+								data-testid="cleanup-button"
+								color="primary"
+								onClick={cleanup}
+								disabled={!cacheReady}
+							>
+								cleanup
+							</Button>
+
+							<View padding="medium 0 0 0">
+								<Flex>
+									<Flex.Item size="33.3%">&nbsp;</Flex.Item>
+									<Flex.Item shouldGrow>
+										<Metric
+											renderLabel="cleanup"
+											data-testid="cleanup-time"
+											renderValue={
+												cleanupTime !== null ? (
+													`${Math.round(cleanupTime)} ms`
+												) : (
+													<BlankStat />
+												)
+											}
+										/>
+									</Flex.Item>
+									<Flex.Item size="33.3%">&nbsp;</Flex.Item>
 								</Flex>
 							</View>
 						</Test>

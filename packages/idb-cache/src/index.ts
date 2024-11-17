@@ -120,7 +120,7 @@ export class IDBCache implements AsyncStorage {
 
     this.cleanupIntervalId = window.setInterval(async () => {
       try {
-        await this.cleanupCache();
+        await this.cleanup();
       } catch (error) {
         console.error("Error during cleanup:", error);
       }
@@ -128,12 +128,11 @@ export class IDBCache implements AsyncStorage {
 
     this.initWorker(cacheKey, cacheBuster)
       .then(() => {
-        this.cleanupCache().catch((error) =>
-          console.error("Initial cleanup failed:", error)
-        );
-        this.flushBustedCacheItems().catch((error) =>
-          console.error("Failed to flush old cache items:", error)
-        );
+        setTimeout(() => {
+          this.cleanup().catch((error) =>
+            console.error("Initial cleanup failed:", error)
+          );
+        }, 10000);
       })
       .catch((error) => {
         console.error("Worker initialization failed:", error);
@@ -191,65 +190,10 @@ export class IDBCache implements AsyncStorage {
   }
 
   /**
-   * Flushes items from the cache that do not match the current cacheBuster.
+   * Cleans up the cache by removing expired items, flushing busted cache items, and enforcing the maxTotalChunks limit.
    * @throws {DatabaseError} If there is an issue accessing the database.
    */
-  private async flushBustedCacheItems(): Promise<void> {
-    try {
-      const db = await this.dbReadyPromise;
-      const transaction = db.transaction(this.storeName, "readwrite");
-      const store = transaction.store;
-      const index = store.index("byCacheBuster");
-
-      const currentCacheBuster = this.cacheBuster;
-
-      const lowerBoundRange = IDBKeyRange.upperBound(currentCacheBuster, true);
-      const upperBoundRange = IDBKeyRange.lowerBound(currentCacheBuster, true);
-
-      const deleteItemsInRange = async (range: IDBKeyRange) => {
-        let itemsDeleted = 0;
-        let cursor = await index.openCursor(range);
-        while (cursor) {
-          if (this.debug) {
-            console.debug(
-              "Deleting item with cacheBuster:",
-              cursor.value.cacheBuster
-            );
-          }
-          await cursor.delete();
-          itemsDeleted++;
-          cursor = await cursor.continue();
-        }
-        return itemsDeleted;
-      };
-
-      const itemsDeleted = await Promise.all([
-        deleteItemsInRange(lowerBoundRange),
-        deleteItemsInRange(upperBoundRange),
-      ]);
-
-      await transaction.done;
-      if (this.debug) {
-        const total = itemsDeleted.reduce((acc, curr) => acc + (curr || 0), 0);
-        if (total > 0) {
-          console.debug("Flushed old cache items with different cacheBuster.");
-        }
-      }
-    } catch (error) {
-      console.error("Error during flushBustedCacheItems:", error);
-      if (error instanceof DatabaseError) {
-        throw error;
-      }
-      throw new DatabaseError("Failed to flush old cache items.");
-    }
-  }
-
-  /**
-   * Cleans up the cache by removing expired items and enforcing the maxTotalChunks limit.
-   * This method consolidates the functionality of cleanupExpiredItems and cleanupExcessChunks.
-   * @throws {DatabaseError} If there is an issue accessing the database.
-   */
-  private async cleanupCache(): Promise<void> {
+  public async cleanup(): Promise<void> {
     try {
       const db = await this.dbReadyPromise;
       const transaction = db.transaction(this.storeName, "readwrite");
@@ -276,7 +220,35 @@ export class IDBCache implements AsyncStorage {
         cursor = await cursor.continue();
       }
 
-      // 2. Enforce maxTotalChunks limit
+      // 2. Flush busted cache items
+      const currentCacheBuster = this.cacheBuster;
+
+      const lowerBoundRange = IDBKeyRange.upperBound(currentCacheBuster, true);
+      const upperBoundRange = IDBKeyRange.lowerBound(currentCacheBuster, true);
+
+      const deleteItemsInRange = async (range: IDBKeyRange) => {
+        let itemsDeleted = 0;
+        let rangeCursor = await cacheBusterIndex.openCursor(range);
+        while (rangeCursor) {
+          if (this.debug) {
+            console.debug(
+              "Deleting item with cacheBuster:",
+              rangeCursor.value.cacheBuster
+            );
+          }
+          await rangeCursor.delete();
+          itemsDeleted++;
+          rangeCursor = await rangeCursor.continue();
+        }
+        return itemsDeleted;
+      };
+
+      const itemsDeleted = await Promise.all([
+        deleteItemsInRange(lowerBoundRange),
+        deleteItemsInRange(upperBoundRange),
+      ]);
+
+      // 3. Enforce maxTotalChunks limit
       if (this.maxTotalChunks !== undefined) {
         const totalChunks = await store.count();
         if (totalChunks > this.maxTotalChunks) {
@@ -309,8 +281,18 @@ export class IDBCache implements AsyncStorage {
       }
 
       await transaction.done;
+
+      if (this.debug) {
+        const totalDeleted = itemsDeleted.reduce(
+          (acc, curr) => acc + (curr || 0),
+          0
+        );
+        if (totalDeleted > 0) {
+          console.debug("Flushed old cache items with different cacheBuster.");
+        }
+      }
     } catch (error) {
-      console.error("Error during cleanupCache:", error);
+      console.error("Error during cleanup:", error);
       if (error instanceof DatabaseError) {
         throw error;
       }

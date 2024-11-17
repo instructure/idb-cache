@@ -52,6 +52,10 @@ await cache.removeItem('key');
 // Count stored chunks
 const totalChunks = await cache.count();
 
+// Removes expired items, busted items, and limits chunks
+// Runs at interval
+cache.cleanup();
+
 // Clears all items from cache
 cache.clear();
 
