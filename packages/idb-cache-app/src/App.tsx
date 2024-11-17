@@ -8,7 +8,6 @@ import { View } from "@instructure/ui-view";
 import { Flex } from "@instructure/ui-flex";
 import { Heading } from "@instructure/ui-heading";
 import { NumberInput } from "@instructure/ui-number-input";
-import { TextInput } from "@instructure/ui-text-input";
 import GitHubLink from "./components/GitHubLink";
 import BlankStat from "./components/BlankStat";
 import { CacheKey } from "./components/CacheKey";
@@ -259,7 +258,7 @@ const App = () => {
 									<Flex>
 										<Flex.Item size="33.3%">
 											<Metric
-												renderLabel="Generate Test Data"
+												renderLabel="fixtures"
 												data-testid="generate-time"
 												renderValue={
 													timeToGenerate !== null ? (
@@ -286,7 +285,7 @@ const App = () => {
 										<Flex.Item size="33.3%">
 											<Metric
 												data-testid="hash1"
-												renderLabel="Hash"
+												renderLabel="hash"
 												renderValue={hash1 || <BlankStat />}
 											/>
 										</Flex.Item>
@@ -323,7 +322,7 @@ const App = () => {
 									</Flex.Item>
 									<Flex.Item size="33.3%">
 										<Metric
-											renderLabel="Hash"
+											renderLabel="hash"
 											data-testid="hash2"
 											renderValue={hash2 || <BlankStat />}
 										/>
@@ -360,7 +359,7 @@ const App = () => {
 									</Flex.Item>
 									<Flex.Item size="33.3%">
 										<Metric
-											renderLabel="Chunks"
+											renderLabel="chunks"
 											data-testid="count-value"
 											renderValue={
 												typeof itemCount === "number" ? (
