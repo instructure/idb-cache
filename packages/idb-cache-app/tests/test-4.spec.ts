@@ -8,6 +8,9 @@ test("20mb size item", async ({ page }) => {
   await expect(page.getByText("6u81xr")).toBeVisible();
   await page.getByTestId("get-item-button").click();
   await expect(page.getByTestId("hash2").getByText("6u81xr")).toBeVisible();
+  // Ensures enough time for IDB to take effect
   await page.getByTestId("count-button").click();
-  await expect(page.getByText("839")).toBeVisible();
+  await page.getByTestId("count-button").click();
+  await page.getByTestId("count-button").click();
+  await expect(page.getByText("820")).toBeVisible();
 });

@@ -36,7 +36,7 @@ const DEFAULT_NUM_ITEMS = 1;
 
 // Default item size set to 32KB
 const DEFAULT_ITEM_SIZE = 1024 * 32;
-const DEFAULT_CHUNK_SIZE = 25000;
+const DEFAULT_CHUNK_SIZE = 1024 * 25; // 25 KiB
 const DEAFULT_MAX_CHUNKS_STORED = 5000;
 
 const getInitialItemSize = () => {
@@ -265,7 +265,7 @@ const App = () => {
 
 							<WrappedFlexItem>
 								<NumberInput
-									renderLabel="Size of item (KB):"
+									renderLabel="Item size (KiB):"
 									onChange={(e) => {
 										const newValue = Math.max(
 											Number.parseInt(e.target.value, 10) * 1024,
@@ -280,7 +280,7 @@ const App = () => {
 										setItemSize((prev) => Math.max(prev - 1024, 1024));
 									}}
 									isRequired
-									value={Math.round(itemSize / 1024)} // Display in KB
+									value={Math.round(itemSize / 1024)} // Display in KiB
 								/>
 							</WrappedFlexItem>
 							<WrappedFlexItem>
@@ -294,7 +294,7 @@ const App = () => {
 							<WrappedFlexItem>
 								<NumberInput
 									disabled
-									renderLabel="Chunk size (KB):"
+									renderLabel="Chunk size (KiB):"
 									onChange={(e) => {
 										const newValue = Math.max(
 											Number.parseInt(e.target.value, 10) * 1024,
@@ -308,7 +308,7 @@ const App = () => {
 									onDecrement={() => {
 										setChunkSize((prev) => Math.max(prev - 1024, 1024));
 									}}
-									value={Math.round(chunkSize / 1024)} // Display in KB
+									value={Math.round(chunkSize / 1024)} // Display in KiB
 								/>
 							</WrappedFlexItem>
 
