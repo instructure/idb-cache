@@ -120,7 +120,7 @@ export class IDBCache implements AsyncStorage {
 
     this.cleanupIntervalId = window.setInterval(async () => {
       try {
-        await this.cleanupCache(); // Call the consolidated cleanupCache
+        await this.cleanupCache();
       } catch (error) {
         console.error("Error during cleanup:", error);
       }

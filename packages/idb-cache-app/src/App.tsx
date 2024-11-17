@@ -20,25 +20,17 @@ import { Test } from "./components/Test";
 
 // For demonstration/testing purposes.
 // Do *not* store cacheKey to localStorage in production.
-let cacheKey: string = localStorage.cacheKey;
-if (!cacheKey) {
-	cacheKey = crypto.randomUUID();
-	localStorage.cacheKey = cacheKey;
+let initialCacheKey: string = localStorage.cacheKey;
+if (!initialCacheKey) {
+	initialCacheKey = crypto.randomUUID();
+	localStorage.cacheKey = initialCacheKey;
 }
 
-let cacheBuster: string = localStorage.cacheBuster;
-if (!cacheBuster) {
-	cacheBuster = crypto.randomUUID();
-	localStorage.cacheBuster = cacheBuster;
+let initialCacheBuster: string = localStorage.cacheBuster;
+if (!initialCacheBuster) {
+	initialCacheBuster = crypto.randomUUID();
+	localStorage.cacheBuster = initialCacheBuster;
 }
-
-const cache = new IDBCache({
-	cacheKey,
-	cacheBuster,
-	debug: true,
-});
-// @ts-expect-error
-window.idbCacheInstance = cache;
 
 const DEFAULT_NUM_ITEMS = 1;
 
@@ -72,8 +64,13 @@ const App = () => {
 	const [chunkSize, setChunkSize] = useState<number>(DEFAULT_CHUNK_SIZE);
 	const [itemCount, setItemCount] = useState<number | null>(null);
 	const [maxTotalChunksStored, setMaxTotalChunksStored] = useState<number>(
-		DEAFULT_MAX_CHUNKS_STORED,
+		() => {
+			const stored = localStorage.getItem("maxTotalChunksStored");
+			return stored ? Number.parseInt(stored, 10) : DEAFULT_MAX_CHUNKS_STORED;
+		},
 	);
+
+	const [cacheReady, setCacheReady] = useState<boolean>(false);
 
 	useEffect(() => {
 		const params = new URLSearchParams(window.location.hash.slice(1));
@@ -88,7 +85,69 @@ const App = () => {
 		deterministicHash(`seed-${keyCounter.current}`),
 	);
 
+	const cacheRef = useRef<IDBCache | null>(null);
+
+	useEffect(() => {
+		let isCancelled = false;
+
+		const initializeCache = async () => {
+			if (cacheRef.current) {
+				setCacheReady(false);
+				try {
+					await cacheRef.current.destroy();
+				} catch (error) {
+					console.error("Error destroying previous cache:", error);
+				}
+			}
+
+			try {
+				const newCache = new IDBCache({
+					cacheKey: initialCacheKey,
+					cacheBuster: initialCacheBuster,
+					debug: true,
+					chunkSize: chunkSize,
+					maxTotalChunks: maxTotalChunksStored,
+				});
+
+				if (!isCancelled) {
+					cacheRef.current = newCache;
+					setCacheReady(true);
+				} else {
+					await newCache.destroy();
+				}
+			} catch (error) {
+				console.error("Error initializing cache:", error);
+				if (!isCancelled) {
+					setCacheReady(false);
+				}
+			}
+		};
+
+		initializeCache();
+
+		return () => {
+			isCancelled = true;
+			if (cacheRef.current) {
+				cacheRef.current.destroy().catch((error) => {
+					console.error("Error destroying cache on cleanup:", error);
+				});
+				cacheRef.current = null;
+				setCacheReady(false);
+			}
+		};
+	}, [chunkSize, maxTotalChunksStored]);
+
+	useEffect(() => {
+		localStorage.setItem("maxTotalChunksStored", String(maxTotalChunksStored));
+	}, [maxTotalChunksStored]);
+
 	const encryptAndStore = useCallback(async () => {
+		const cache = cacheRef.current;
+		if (!cache) {
+			console.error("Cache is not initialized.");
+			return;
+		}
+
 		const key = deterministicHash(`seed-${keyCounter.current}`);
 		localStorage.setItem("keyCounter", String(keyCounter.current));
 		keyCounter.current += 1;
@@ -114,6 +173,12 @@ const App = () => {
 	}, [itemSize]);
 
 	const retrieveAndDecrypt = useCallback(async () => {
+		const cache = cacheRef.current;
+		if (!cache) {
+			console.error("Cache is not initialized.");
+			return;
+		}
+
 		const results: Array<string | null> = [];
 		const start = performance.now();
 
@@ -132,6 +197,12 @@ const App = () => {
 	}, [contentKey]);
 
 	const count = useCallback(async () => {
+		const cache = cacheRef.current;
+		if (!cache) {
+			console.error("Cache is not initialized.");
+			return;
+		}
+
 		const start = performance.now();
 		const count = await cache.count();
 		const end = performance.now();
@@ -140,6 +211,12 @@ const App = () => {
 	}, []);
 
 	const clear = useCallback(async () => {
+		const cache = cacheRef.current;
+		if (!cache) {
+			console.error("Cache is not initialized.");
+			return;
+		}
+
 		const start = performance.now();
 		await cache.clear();
 		localStorage.removeItem("keyCounter");
@@ -166,10 +243,10 @@ const App = () => {
 					<form>
 						<WrappedFlexContainer>
 							<WrappedFlexItem>
-								<CacheKey cacheKey={cacheKey} />
+								<CacheKey cacheKey={initialCacheKey} />
 							</WrappedFlexItem>
 							<WrappedFlexItem>
-								<CacheBuster cacheBuster={cacheBuster} />
+								<CacheBuster cacheBuster={initialCacheBuster} />
 							</WrappedFlexItem>
 
 							<WrappedFlexItem>
@@ -196,7 +273,7 @@ const App = () => {
 								<NumberInput
 									renderLabel="Chunks per item:"
 									interaction="disabled"
-									value={Math.ceil(itemSize / 25000)}
+									value={Math.ceil(itemSize / chunkSize)}
 								/>
 							</WrappedFlexItem>
 
@@ -244,61 +321,53 @@ const App = () => {
 						</Heading>
 
 						{/* setItem Performance */}
-						<View
-							as="div"
-							display="block"
-							margin="small none"
-							padding="medium"
-							background="primary"
-							shadow="resting"
-						>
-							<Flex direction="column">
-								<Button
-									data-testid="set-item-button"
-									color="primary"
-									onClick={encryptAndStore}
-								>
-									setItem
-								</Button>
-								<View padding="medium 0 0 0">
-									<Flex>
-										<Flex.Item size="33.3%">
-											<Metric
-												renderLabel="fixtures"
-												data-testid="generate-time"
-												renderValue={
-													timeToGenerate !== null ? (
-														`${Math.round(timeToGenerate)} ms`
-													) : (
-														<BlankStat />
-													)
-												}
-											/>
-										</Flex.Item>
-										<Flex.Item shouldGrow>
-											<Metric
-												renderLabel="setItem"
-												data-testid="set-time"
-												renderValue={
-													setTime !== null ? (
-														`${Math.round(setTime)} ms`
-													) : (
-														<BlankStat />
-													)
-												}
-											/>
-										</Flex.Item>
-										<Flex.Item size="33.3%">
-											<Metric
-												data-testid="hash1"
-												renderLabel="hash"
-												renderValue={hash1 || <BlankStat />}
-											/>
-										</Flex.Item>
-									</Flex>
-								</View>
-							</Flex>
-						</View>
+						<Test>
+							<Button
+								data-testid="set-item-button"
+								color="primary"
+								onClick={encryptAndStore}
+								disabled={!cacheReady}
+							>
+								setItem
+							</Button>
+							<View padding="medium 0 0 0">
+								<Flex>
+									<Flex.Item size="33.3%">
+										<Metric
+											renderLabel="fixtures"
+											data-testid="generate-time"
+											renderValue={
+												timeToGenerate !== null ? (
+													`${Math.round(timeToGenerate)} ms`
+												) : (
+													<BlankStat />
+												)
+											}
+										/>
+									</Flex.Item>
+									<Flex.Item shouldGrow>
+										<Metric
+											renderLabel="setItem"
+											data-testid="set-time"
+											renderValue={
+												setTime !== null ? (
+													`${Math.round(setTime)} ms`
+												) : (
+													<BlankStat />
+												)
+											}
+										/>
+									</Flex.Item>
+									<Flex.Item size="33.3%">
+										<Metric
+											data-testid="hash1"
+											renderLabel="hash"
+											renderValue={hash1 || <BlankStat />}
+										/>
+									</Flex.Item>
+								</Flex>
+							</View>
+						</Test>
 
 						{/* getItem Performance */}
 						<Test>
@@ -306,6 +375,7 @@ const App = () => {
 								data-testid="get-item-button"
 								color="primary"
 								onClick={retrieveAndDecrypt}
+								disabled={!cacheReady}
 							>
 								getItem
 							</Button>
@@ -343,6 +413,7 @@ const App = () => {
 								data-testid="count-button"
 								color="primary"
 								onClick={count}
+								disabled={!cacheReady}
 							>
 								count
 							</Button>
@@ -352,8 +423,8 @@ const App = () => {
 									<Flex.Item size="33.3%">&nbsp;</Flex.Item>
 									<Flex.Item shouldGrow>
 										<Metric
-											data-testid="count-time"
 											renderLabel="count"
+											data-testid="count-time"
 											renderValue={
 												countTime !== null ? (
 													`${Math.round(countTime)} ms`
@@ -386,6 +457,7 @@ const App = () => {
 								data-testid="clear-button"
 								color="primary"
 								onClick={clear}
+								disabled={!cacheReady}
 							>
 								clear
 							</Button>
