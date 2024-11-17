@@ -11,6 +11,13 @@ import { NumberInput } from "@instructure/ui-number-input";
 import { TextInput } from "@instructure/ui-text-input";
 import GitHubLink from "./components/GitHubLink";
 import BlankStat from "./components/BlankStat";
+import { CacheKey } from "./components/CacheKey";
+import { CacheBuster } from "./components/CacheBuster";
+import {
+	WrappedFlexContainer,
+	WrappedFlexItem,
+} from "./components/WrappedFlexItem";
+import { Test } from "./components/Test";
 
 // For demonstration/testing purposes.
 // Do *not* store cacheKey to localStorage in production.
@@ -38,6 +45,8 @@ const DEFAULT_NUM_ITEMS = 1;
 
 // Default item size set to 32KB
 const DEFAULT_ITEM_SIZE = 1024 * 32;
+const DEFAULT_CHUNK_SIZE = 25000;
+const DEAFULT_MAX_CHUNKS_STORED = 5000;
 
 const getInitialItemSize = () => {
 	const params = new URLSearchParams(window.location.hash.slice(1));
@@ -55,13 +64,17 @@ const App = () => {
 	const [hash1, setHash1] = useState<string | null>(null);
 	const [hash2, setHash2] = useState<string | null>(null);
 	const [timeToGenerate, setTimeToGenerate] = useState<number | null>(null);
-	const [setTime, setSetTime] = useState<number | null>(null);
-	const [getTime, setGetTime] = useState<number | null>(null);
+	const [setTime, setSetItemTime] = useState<number | null>(null);
+	const [getTime, setGetItemTime] = useState<number | null>(null);
 	const [countTime, setCountTime] = useState<number | null>(null);
 	const [clearTime, setClearTime] = useState<number | null>(null);
 
 	const [itemSize, setItemSize] = useState<number>(getInitialItemSize());
+	const [chunkSize, setChunkSize] = useState<number>(DEFAULT_CHUNK_SIZE);
 	const [itemCount, setItemCount] = useState<number | null>(null);
+	const [maxTotalChunksStored, setMaxTotalChunksStored] = useState<number>(
+		DEAFULT_MAX_CHUNKS_STORED,
+	);
 
 	useEffect(() => {
 		const params = new URLSearchParams(window.location.hash.slice(1));
@@ -96,7 +109,7 @@ const App = () => {
 		}
 
 		const end2 = performance.now();
-		setSetTime(end2 - start2);
+		setSetItemTime(end2 - start2);
 
 		setHash1(deterministicHash(paragraphs.join("")));
 	}, [itemSize]);
@@ -111,7 +124,7 @@ const App = () => {
 		}
 
 		const end = performance.now();
-		setGetTime(end - start);
+		setGetItemTime(end - start);
 		setHash2(
 			results.filter((x) => x).length > 0
 				? deterministicHash(results.join(""))
@@ -146,92 +159,80 @@ const App = () => {
 					</Heading>
 
 					<form>
-						<Flex direction="column" gap="small">
-							<Flex.Item>
-								<Flex gap="medium" justifyItems="space-between">
-									<Flex.Item width="48%">
-										<Flex direction="row" alignItems="end" margin="xx-small 0">
-											<Flex.Item shouldGrow>
-												<TextInput
-													renderLabel="Cache key:"
-													interaction="disabled"
-													defaultValue={cacheKey}
-												/>
-											</Flex.Item>
-											<Flex.Item>
-												<Button
-													aria-label="Reset cache key"
-													margin="0 0 0 xxx-small"
-													data-testid="reset-cacheKey"
-													onClick={() => {
-														localStorage.removeItem("cacheKey");
-														localStorage.removeItem("keyCounter");
-														window.location.reload();
-													}}
-												>
-													Reset
-												</Button>
-											</Flex.Item>
-										</Flex>
-									</Flex.Item>
-									<Flex.Item width="48%">
-										<Flex direction="row" alignItems="end" margin="xx-small 0">
-											<Flex.Item shouldGrow>
-												<TextInput
-													renderLabel="Cache buster:"
-													interaction="disabled"
-													defaultValue={cacheBuster}
-												/>
-											</Flex.Item>
-											<Flex.Item>
-												<Button
-													aria-label="Reset cache buster"
-													margin="0 0 0 xxx-small"
-													data-testid="reset-cacheBuster"
-													onClick={() => {
-														localStorage.removeItem("cacheBuster");
-														localStorage.removeItem("keyCounter");
-														window.location.reload();
-													}}
-												>
-													Reset
-												</Button>
-											</Flex.Item>
-										</Flex>
-									</Flex.Item>
-								</Flex>
-							</Flex.Item>
+						<WrappedFlexContainer>
+							<WrappedFlexItem>
+								<CacheKey cacheKey={cacheKey} />
+							</WrappedFlexItem>
+							<WrappedFlexItem>
+								<CacheBuster cacheBuster={cacheBuster} />
+							</WrappedFlexItem>
 
-							<Flex justifyItems="space-between">
-								<Flex.Item width="48%">
-									<NumberInput
-										renderLabel="Size of data (KB):"
-										onChange={(e) => {
-											const newValue = Math.max(
-												Number.parseInt(e.target.value, 10) * 1024,
-												1024,
-											);
-											setItemSize(newValue);
-										}}
-										onIncrement={() => {
-											setItemSize((prev) => Math.max(prev + 1024, 1024));
-										}}
-										onDecrement={() => {
-											setItemSize((prev) => Math.max(prev - 1024, 1024));
-										}}
-										isRequired
-										value={Math.round(itemSize / 1024)} // Display in KB
-									/>
-								</Flex.Item>
-								<Flex.Item width="48%">
-									<NumberInput
-										renderLabel="Number of chunks:"
-										interaction="disabled"
-										value={Math.ceil(itemSize / 25000)}
-									/>
-								</Flex.Item>
-							</Flex>
-						</Flex>
+							<WrappedFlexItem>
+								<NumberInput
+									renderLabel="Size of item (KB):"
+									onChange={(e) => {
+										const newValue = Math.max(
+											Number.parseInt(e.target.value, 10) * 1024,
+											1024,
+										);
+										setItemSize(newValue);
+									}}
+									onIncrement={() => {
+										setItemSize((prev) => Math.max(prev + 1024, 1024));
+									}}
+									onDecrement={() => {
+										setItemSize((prev) => Math.max(prev - 1024, 1024));
+									}}
+									isRequired
+									value={Math.round(itemSize / 1024)} // Display in KB
+								/>
+							</WrappedFlexItem>
+							<WrappedFlexItem>
+								<NumberInput
+									renderLabel="Chunks per item:"
+									interaction="disabled"
+									value={Math.ceil(itemSize / 25000)}
+								/>
+							</WrappedFlexItem>
+
+							<WrappedFlexItem>
+								<NumberInput
+									disabled
+									renderLabel="Chunk size (KB):"
+									onChange={(e) => {
+										const newValue = Math.max(
+											Number.parseInt(e.target.value, 10) * 1024,
+											1024,
+										);
+										setChunkSize(newValue);
+									}}
+									onIncrement={() => {
+										setChunkSize((prev) => Math.max(prev + 1024, 1024));
+									}}
+									onDecrement={() => {
+										setChunkSize((prev) => Math.max(prev - 1024, 1024));
+									}}
+									value={Math.round(chunkSize / 1024)} // Display in KB
+								/>
+							</WrappedFlexItem>
+
+							<WrappedFlexItem>
+								<NumberInput
+									renderLabel="Max total chunks:"
+									onChange={(e) => {
+										const newValue = Number.parseInt(e.target.value, 10) || 1;
+										setMaxTotalChunksStored(newValue);
+									}}
+									onIncrement={() => {
+										setMaxTotalChunksStored((prev) => Math.max(prev + 1, 1));
+									}}
+									onDecrement={() => {
+										setMaxTotalChunksStored((prev) => Math.max(prev - 1, 1));
+									}}
+									value={maxTotalChunksStored}
+								/>
+							</WrappedFlexItem>
+						</WrappedFlexContainer>
 
 						<Heading level="h2" margin="medium 0 small 0">
 							Tests
@@ -295,142 +296,115 @@ const App = () => {
 						</View>
 
 						{/* getItem Performance */}
-						<View
-							as="div"
-							display="block"
-							margin="small none"
-							padding="medium"
-							background="primary"
-							shadow="resting"
-						>
-							<Flex direction="column">
-								<Button
-									data-testid="get-item-button"
-									color="primary"
-									onClick={retrieveAndDecrypt}
-								>
-									getItem
-								</Button>
+						<Test>
+							<Button
+								data-testid="get-item-button"
+								color="primary"
+								onClick={retrieveAndDecrypt}
+							>
+								getItem
+							</Button>
 
-								<View padding="medium 0 0 0">
-									<Flex>
-										<Flex.Item size="33.3%">&nbsp;</Flex.Item>
-										<Flex.Item shouldGrow>
-											<Metric
-												renderLabel="getItem"
-												data-testid="get-time"
-												renderValue={
-													getTime !== null ? (
-														`${Math.round(getTime)} ms`
-													) : (
-														<BlankStat />
-													)
-												}
-											/>
-										</Flex.Item>
-										<Flex.Item size="33.3%">
-											<Metric
-												renderLabel="Hash"
-												data-testid="hash2"
-												renderValue={hash2 || <BlankStat />}
-											/>
-										</Flex.Item>
-									</Flex>
-								</View>
-							</Flex>
-						</View>
+							<View padding="medium 0 0 0">
+								<Flex>
+									<Flex.Item size="33.3%">&nbsp;</Flex.Item>
+									<Flex.Item shouldGrow>
+										<Metric
+											renderLabel="getItem"
+											data-testid="get-time"
+											renderValue={
+												getTime !== null ? (
+													`${Math.round(getTime)} ms`
+												) : (
+													<BlankStat />
+												)
+											}
+										/>
+									</Flex.Item>
+									<Flex.Item size="33.3%">
+										<Metric
+											renderLabel="Hash"
+											data-testid="hash2"
+											renderValue={hash2 || <BlankStat />}
+										/>
+									</Flex.Item>
+								</Flex>
+							</View>
+						</Test>
 
 						{/* count Performance */}
-						<View
-							as="div"
-							display="block"
-							margin="small none"
-							padding="medium"
-							background="primary"
-							shadow="resting"
-						>
-							<Flex direction="column">
-								<Button
-									data-testid="count-button"
-									color="primary"
-									onClick={count}
-								>
-									count
-								</Button>
+						<Test>
+							<Button
+								data-testid="count-button"
+								color="primary"
+								onClick={count}
+							>
+								count
+							</Button>
 
-								<View padding="medium 0 0 0">
-									<Flex>
-										<Flex.Item size="33.3%">&nbsp;</Flex.Item>
-										<Flex.Item shouldGrow>
-											<Metric
-												data-testid="count-time"
-												renderLabel="count"
-												renderValue={
-													countTime !== null ? (
-														`${Math.round(countTime)} ms`
-													) : (
-														<BlankStat />
-													)
-												}
-											/>
-										</Flex.Item>
-										<Flex.Item size="33.3%">
-											<Metric
-												renderLabel="Chunks"
-												data-testid="count-value"
-												renderValue={
-													typeof itemCount === "number" ? (
-														itemCount
-													) : (
-														<BlankStat />
-													)
-												}
-											/>
-										</Flex.Item>
-									</Flex>
-								</View>
-							</Flex>
-						</View>
+							<View padding="medium 0 0 0">
+								<Flex>
+									<Flex.Item size="33.3%">&nbsp;</Flex.Item>
+									<Flex.Item shouldGrow>
+										<Metric
+											data-testid="count-time"
+											renderLabel="count"
+											renderValue={
+												countTime !== null ? (
+													`${Math.round(countTime)} ms`
+												) : (
+													<BlankStat />
+												)
+											}
+										/>
+									</Flex.Item>
+									<Flex.Item size="33.3%">
+										<Metric
+											renderLabel="Chunks"
+											data-testid="count-value"
+											renderValue={
+												typeof itemCount === "number" ? (
+													itemCount
+												) : (
+													<BlankStat />
+												)
+											}
+										/>
+									</Flex.Item>
+								</Flex>
+							</View>
+						</Test>
 
 						{/* clear Performance */}
-						<View
-							as="div"
-							display="block"
-							margin="small 0 0 0"
-							padding="medium"
-							background="primary"
-							shadow="resting"
-						>
-							<Flex direction="column">
-								<Button
-									data-testid="clear-button"
-									color="primary"
-									onClick={clear}
-								>
-									clear
-								</Button>
+						<Test>
+							<Button
+								data-testid="clear-button"
+								color="primary"
+								onClick={clear}
+							>
+								clear
+							</Button>
 
-								<View padding="medium 0 0 0">
-									<Flex>
-										<Flex.Item size="33.3%">&nbsp;</Flex.Item>
-										<Flex.Item shouldGrow>
-											<Metric
-												renderLabel="clear"
-												data-testid="clear-time"
-												renderValue={
-													clearTime !== null ? (
-														`${Math.round(clearTime)} ms`
-													) : (
-														<BlankStat />
-													)
-												}
-											/>
-										</Flex.Item>
-										<Flex.Item size="33.3%">&nbsp;</Flex.Item>
-									</Flex>
-								</View>
-							</Flex>
-						</View>
+							<View padding="medium 0 0 0">
+								<Flex>
+									<Flex.Item size="33.3%">&nbsp;</Flex.Item>
+									<Flex.Item shouldGrow>
+										<Metric
+											renderLabel="clear"
+											data-testid="clear-time"
+											renderValue={
+												clearTime !== null ? (
+													`${Math.round(clearTime)} ms`
+												) : (
+													<BlankStat />
+												)
+											}
+										/>
+									</Flex.Item>
+									<Flex.Item size="33.3%">&nbsp;</Flex.Item>
+								</Flex>
+							</View>
+						</Test>
 					</form>
 				</View>
 			</div>

@@ -43,15 +43,15 @@ interface IDBCacheConfig {
   cleanupInterval?: number;
   dbName?: string;
   debug?: boolean;
-  pbkdf2Iterations?: number;
   gcTime?: number;
   /**
    * The maximum number of chunks to store in the cache.
-   * If set, during cleanup intervals, the cache will ensure that no more than maxChunks are stored.
+   * If set, during cleanup intervals, the cache will ensure that no more than maxTotalChunks are stored.
    * Excess oldest chunks will be removed to enforce this limit.
    * Defaults to undefined, meaning no limit.
    */
-  maxChunks?: number;
+  maxTotalChunks?: number;
+  pbkdf2Iterations?: number;
 }
 
 export interface AsyncStorage {
@@ -80,7 +80,7 @@ export class IDBCache implements AsyncStorage {
   private pbkdf2Iterations: number;
   private cacheBuster: string;
   private debug: boolean;
-  private maxChunks?: number;
+  private maxTotalChunks?: number;
 
   constructor(config: IDBCacheConfig) {
     const {
@@ -92,7 +92,7 @@ export class IDBCache implements AsyncStorage {
       chunkSize = DEFAULT_CHUNK_SIZE,
       cleanupInterval = CLEANUP_INTERVAL,
       pbkdf2Iterations = DEFAULT_PBKDF2_ITERATIONS,
-      maxChunks,
+      maxTotalChunks,
     } = config;
 
     this.storeName = "cache";
@@ -103,7 +103,7 @@ export class IDBCache implements AsyncStorage {
     this.chunkSize = chunkSize;
     this.cleanupInterval = cleanupInterval;
     this.pbkdf2Iterations = pbkdf2Iterations;
-    this.maxChunks = maxChunks;
+    this.maxTotalChunks = maxTotalChunks;
     this.pendingRequests = new Map();
 
     if (!window.indexedDB)
@@ -245,7 +245,7 @@ export class IDBCache implements AsyncStorage {
   }
 
   /**
-   * Cleans up the cache by removing expired items and enforcing the maxChunks limit.
+   * Cleans up the cache by removing expired items and enforcing the maxTotalChunks limit.
    * This method consolidates the functionality of cleanupExpiredItems and cleanupExcessChunks.
    * @throws {DatabaseError} If there is an issue accessing the database.
    */
@@ -276,14 +276,14 @@ export class IDBCache implements AsyncStorage {
         cursor = await cursor.continue();
       }
 
-      // 2. Enforce maxChunks limit
-      if (this.maxChunks !== undefined) {
+      // 2. Enforce maxTotalChunks limit
+      if (this.maxTotalChunks !== undefined) {
         const totalChunks = await store.count();
-        if (totalChunks > this.maxChunks) {
-          const excess = totalChunks - this.maxChunks;
+        if (totalChunks > this.maxTotalChunks) {
+          const excess = totalChunks - this.maxTotalChunks;
           if (this.debug) {
             console.debug(
-              `Total chunks (${totalChunks}) exceed maxChunks (${this.maxChunks}). Deleting ${excess} oldest chunks.`
+              `Total chunks (${totalChunks}) exceed maxTotalChunks (${this.maxTotalChunks}). Deleting ${excess} oldest chunks.`
             );
           }
 
@@ -298,12 +298,12 @@ export class IDBCache implements AsyncStorage {
 
           if (this.debug) {
             console.debug(
-              `Deleted ${excessDeleted} oldest chunks to enforce maxChunks.`
+              `Deleted ${excessDeleted} oldest chunks to enforce maxTotalChunks.`
             );
           }
         } else if (this.debug) {
           console.debug(
-            `Total chunks (${totalChunks}) within maxChunks (${this.maxChunks}). No excess cleanup needed.`
+            `Total chunks (${totalChunks}) within maxTotalChunks (${this.maxTotalChunks}). No excess cleanup needed.`
           );
         }
       }
