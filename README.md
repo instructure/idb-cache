@@ -105,3 +105,27 @@ export const queryClient = new QueryClient({
   },
 });
 ```
+
+## Data flow
+
+### setItem
+
+```mermaid
+flowchart TD
+    Application([Client app]) --> |".setItem()"| IDBCache[[IDBCache]]
+    IDBCache -.-> |"Unencrypted chunks"| WebWorker{{Web Worker}}
+    WebWorker -.-> |"Encrypted chunks"| IDBCache
+    IDBCache -.-> |"Encrypted chunks"| IndexedDB[(IndexedDB)]
+```
+
+### getItem
+
+```mermaid
+flowchart TD
+    Application([Client app]) --> |".getItem()"| IDBCache[[IDBCache]]
+    IDBCache --> |Get chunks| IndexedDB[(IndexedDB)]
+    IndexedDB -.-> |Encrypted chunks| IDBCache
+    IDBCache -.-> |Encrypted chunks| WebWorker{{Web Worker}}
+    WebWorker -.-> |Decrypted chunks| IDBCache
+    IDBCache --> |"Item"| Application
+```
