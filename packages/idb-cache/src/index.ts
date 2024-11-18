@@ -395,6 +395,9 @@ export class IDBCache implements AsyncStorage {
 
       const chunks: { index: number; data: EncryptedChunk }[] = [];
 
+      let maxIndex = -1;
+      let lastChunkFound = false;
+
       for (const chunkKey of chunkKeys) {
         const encryptedData = await db.get(this.storeName, chunkKey);
         if (!encryptedData) continue;
@@ -406,6 +409,15 @@ export class IDBCache implements AsyncStorage {
           continue;
         }
         const chunkIndex = parseChunkIndexFromKey(chunkKey);
+        if (chunkIndex > maxIndex) {
+          maxIndex = chunkIndex;
+        }
+
+        const isLastChunk = encryptedData.isLastChunk ?? false;
+        if (isLastChunk) {
+          lastChunkFound = true;
+        }
+
         chunks.push({
           index: chunkIndex,
           data: encryptedData,
@@ -413,6 +425,31 @@ export class IDBCache implements AsyncStorage {
       }
 
       if (chunks.length === 0) return null;
+
+      // Integrity check: Ensure that the last chunk is present and all preceding chunks are present
+      if (!lastChunkFound) {
+        throw new IDBCacheError(
+          `Integrity check failed for key ${itemKey}: Last chunk is missing.`
+        );
+      }
+
+      // Ensure all chunk indices from 0 to maxIndex are present
+      if (chunks.length !== maxIndex + 1) {
+        throw new IDBCacheError(
+          `Integrity check failed for key ${itemKey}: Expected ${
+            maxIndex + 1
+          } chunks, but found ${chunks.length}.`
+        );
+      }
+
+      const indexSet = new Set(chunks.map((chunk) => chunk.index));
+      for (let i = 0; i <= maxIndex; i++) {
+        if (!indexSet.has(i)) {
+          throw new IDBCacheError(
+            `Integrity check failed for key ${itemKey}: Missing chunk at index ${i}.`
+          );
+        }
+      }
 
       chunks.sort((a, b) => a.index - b.index);
 
@@ -429,6 +466,10 @@ export class IDBCache implements AsyncStorage {
 
       return decryptedChunks.join("");
     } catch (error) {
+      if (error instanceof IDBCacheError) {
+        console.error(`Integrity check failed for key ${itemKey}:`, error);
+        throw error;
+      }
       if (error instanceof DecryptionError) {
         console.error(`Decryption failed for key ${itemKey}:`, error);
         throw error;
@@ -487,6 +528,8 @@ export class IDBCache implements AsyncStorage {
       }> = [];
       const chunksToUpdate: Array<EncryptedChunk> = [];
 
+      const totalChunks = Math.ceil(value.length / this.chunkSize);
+
       for (let i = 0; i < value.length; i += this.chunkSize) {
         const chunk = value.slice(i, i + this.chunkSize);
         const chunkIndex = Math.floor(i / this.chunkSize);
@@ -496,6 +539,8 @@ export class IDBCache implements AsyncStorage {
         );
         const chunkKey = generateChunkKey(baseKey, chunkIndex, chunkHash);
         newChunkKeys.add(chunkKey);
+
+        const isLastChunk = chunkIndex === totalChunks - 1;
 
         if (existingChunkKeysSet.has(chunkKey)) {
           const existingChunk = await db.get(this.storeName, chunkKey);
@@ -507,6 +552,7 @@ export class IDBCache implements AsyncStorage {
               ...existingChunk,
               timestamp: expirationTimestamp,
               cacheBuster: this.cacheBuster,
+              isLastChunk, // Update the flag in case it's the last chunk
             });
           }
         } else {
@@ -520,6 +566,7 @@ export class IDBCache implements AsyncStorage {
             encryptedChunk: {
               ...encryptedChunk,
               cacheBuster: this.cacheBuster,
+              isLastChunk,
             },
           });
         }

@@ -4,11 +4,12 @@ export interface IDBCacheSchema extends DBSchema {
   cache: {
     key: string;
     value: {
-      key: string;
-      iv: ArrayBuffer;
-      ciphertext: ArrayBuffer;
-      timestamp: number;
       cacheBuster: string;
+      ciphertext: ArrayBuffer;
+      isLastChunk?: boolean;
+      iv: ArrayBuffer;
+      key: string;
+      timestamp: number;
     };
     indexes: {
       byTimestamp: number;
@@ -19,12 +20,13 @@ export interface IDBCacheSchema extends DBSchema {
 
 export type STORE = "cache";
 
-export interface EncryptedChunk {
+interface EncryptedChunk {
   key: string;
   iv: ArrayBuffer;
   ciphertext: ArrayBuffer;
   timestamp: number;
   cacheBuster: string;
+  isLastChunk?: boolean;
 }
 
 export type WorkerMessage =
