@@ -112,16 +112,10 @@ export const queryClient = new QueryClient({
 
 ```mermaid
 flowchart TD
- subgraph Browser["Browser"]
-        IDBCache[["IDBCache"]]
-        Application(["Client app"])
-        WebWorker{{"Web Worker"}}
-        IndexedDB[("IndexedDB")]
-  end
-    Application -- ".setItem()" --> IDBCache
-    IDBCache -. Unencrypted chunks .-> WebWorker
-    WebWorker -. Encrypted chunks .-> IDBCache
-    IDBCache -. Encrypted chunks .-> IndexedDB
+    Application([Client app]) --> |".setItem()"| IDBCache[[IDBCache]]
+    IDBCache -.-> |"Unencrypted chunks"| WebWorker{{Web Worker}}
+    WebWorker -.-> |"Encrypted chunks"| IDBCache
+    IDBCache -.-> |"Encrypted chunks"| IndexedDB[(IndexedDB)]
 ```
 
 ### getItem
