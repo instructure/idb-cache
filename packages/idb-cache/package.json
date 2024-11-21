@@ -24,7 +24,8 @@
 		"build": "rslib build",
 		"dev": "rslib build --watch",
 		"biome:check": "biome check . --write",
-		"typescript:check": "tsc --noEmit"
+		"typescript:check": "tsc --noEmit",
+		"test": "vitest"
 	},
 	"peerDependencies": {
 		"@rslib/core": "^0.0.15"
@@ -33,6 +34,7 @@
 		"@rslib/core": "^0.0.15",
 		"@types/node": "^22.9.0",
 		"idb": "^8.0.0",
-		"typescript": "^5.6.3"
+		"typescript": "^5.6.3",
+		"vitest": "^2.1.5"
 	}
 }

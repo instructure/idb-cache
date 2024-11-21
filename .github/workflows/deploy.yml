@@ -1,4 +1,4 @@
-name: Build and Deploy to GitHub Pages
+name: "GitHub Pages"
 
 on:
   push:
@@ -7,6 +7,7 @@ on:
 
 jobs:
   build-and-deploy:
+    name: "GitHub Pages"
     runs-on: ubuntu-22.04
     strategy:
       matrix:

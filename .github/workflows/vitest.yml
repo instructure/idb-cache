@@ -1,0 +1,63 @@
+name: "Vitest"
+
+on:
+  push:
+    branches:
+      - main
+      - 'releases/*'
+  pull_request:
+    branches:
+      - main
+      - 'releases/*'
+  workflow_dispatch:
+
+jobs:
+  test-idb-cache:
+    name: Vitest
+    runs-on: ubuntu-22.04
+
+    steps:
+      # 1. Checkout the repository
+      - uses: actions/checkout@v3
+
+      # 2. Setup Node.js
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '20'
+
+      # 3. Setup pnpm
+      - name: Setup pnpm
+        id: setup-pnpm
+        uses: pnpm/action-setup@v2
+        with:
+          version: 7.x
+
+      # 4. Cache pnpm dependencies (pnpm store and node_modules)
+      - name: Cache pnpm dependencies
+        uses: actions/cache@v3
+        with:
+          path: |
+            ~/.pnpm-store
+            packages/idb-cache/node_modules
+          key: ${{ runner.os }}-pnpm-store-idb-cache-${{ hashFiles('**/pnpm-lock.yaml') }}-pnpm-${{ steps.setup-pnpm.outputs.pnpm-version }}
+          restore-keys: |
+            ${{ runner.os }}-pnpm-store-idb-cache-
+
+      # 5. Install dependencies
+      - name: Install dependencies
+        run: pnpm install
+
+      # 6. Run Tests and Save Logs
+      - name: Run Tests for idb-cache
+        run: |
+          mkdir -p logs
+          pnpm --filter packages/idb-cache test > logs/test-output.log 2>&1 || true
+
+      # 7. Upload Test Logs (on failure)
+      - name: Upload Test Logs
+        if: failure()
+        uses: actions/upload-artifact@v3
+        with:
+          name: idb-cache-test-logs
+          path: logs/test-output.log

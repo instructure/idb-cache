@@ -6,14 +6,33 @@ import {
   openDB,
 } from "idb";
 import type { IDBCacheSchema, STORE } from "./types";
+import { LRUCache } from "./LRUCache";
 
-const uuidCache = new Map<string, string>();
+const uuidCache = new LRUCache<string, string>(1000);
 
+function isValidHex(hex: string): boolean {
+  return /^[0-9a-fA-F]{128}$/.test(hex);
+}
+
+function bufferToHex(buffer: ArrayBuffer): string {
+  const byteArray = new Uint8Array(buffer);
+  let hex = "";
+  for (const byte of byteArray) {
+    hex += byte.toString(16).padStart(2, "0");
+  }
+  return hex;
+}
+
+// version 5
 export function generateUUIDFromHash(hashHex: string): string {
+  if (!isValidHex(hashHex)) {
+    throw new Error("Invalid hash: Must be a 128-character hexadecimal string");
+  }
+
   return [
     hashHex.slice(0, 8),
     hashHex.slice(8, 12),
-    `4${hashHex.slice(13, 16)}`,
+    `5${hashHex.slice(13, 16)}`,
     ((Number.parseInt(hashHex.slice(16, 17), 16) & 0x3) | 0x8).toString(16) +
       hashHex.slice(17, 20),
     hashHex.slice(20, 32),
@@ -37,10 +56,7 @@ export async function deterministicUUID(key: string): Promise<string> {
   const encoder = new TextEncoder();
   const data = encoder.encode(key);
   const hashBuffer = await crypto.subtle.digest("SHA-512", data);
-  const hashArray = Array.from(new Uint8Array(hashBuffer));
-  const hashHex = hashArray
-    .map((b) => b.toString(16).padStart(2, "0"))
-    .join("");
+  const hashHex = bufferToHex(hashBuffer);
 
   const uuid = generateUUIDFromHash(hashHex);
   uuidCache.set(key, uuid);
