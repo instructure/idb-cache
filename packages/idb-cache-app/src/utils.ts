@@ -1,5 +1,3 @@
-import randomSeed from "random-seed";
-
 export function deterministicHash(str: string): string {
   let hash = 0;
   for (let i = 0; i < str.length; i++) {
@@ -11,36 +9,21 @@ export function deterministicHash(str: string): string {
   return Math.abs(hash).toString(36); // Base-36 string for compact representation
 }
 
-function calculateByteSize(str: string): number {
-  return new TextEncoder().encode(str).length;
-}
+/**
+ * Generates a simple UUID (version 4) without using external libraries.
+ * This function creates a UUID in the format xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx,
+ * where 'y' is one of [8, 9, A, B].
+ *
+ * @returns A UUID string.
+ */
+export function uuid(): string {
+  // Helper function to generate a random hexadecimal digit
+  const randomHex = (c: string): string => {
+    const r: number = (Math.random() * 16) | 0;
+    const v: number = c === "x" ? r : (r & 0x3) | 0x8;
+    return v.toString(16);
+  };
 
-const textCache: Record<string, string> = {};
-
-export function generateTextOfSize(
-  targetSizeInBytes: number,
-  seed = "default"
-): string {
-  const cacheKey = `${targetSizeInBytes}-${seed}`;
-  if (textCache[cacheKey]) {
-    return textCache[cacheKey];
-  }
-
-  const rand = randomSeed.create(seed);
-  const estimatedChars = Math.ceil(targetSizeInBytes);
-  const charArray = new Array(estimatedChars);
-
-  for (let i = 0; i < estimatedChars; i++) {
-    charArray[i] = String.fromCharCode(33 + Math.floor(rand.random() * 94)); // Printable ASCII
-  }
-
-  let result = charArray.join("");
-
-  // Ensure the generated result matches the exact target size
-  while (calculateByteSize(result) > targetSizeInBytes) {
-    result = result.slice(0, -1);
-  }
-
-  textCache[cacheKey] = result;
-  return result;
+  // Generate the UUID using the helper function
+  return "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, randomHex);
 }

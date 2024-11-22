@@ -1,5 +1,6 @@
 {
   "compilerOptions": {
+    "noImplicitAny": true,
     "types": ["node"],
     "lib": ["DOM", "ES2020"],
     "jsx": "react-jsx",

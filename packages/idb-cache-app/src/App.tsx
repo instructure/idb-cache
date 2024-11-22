@@ -1,7 +1,7 @@
 import "./App.css";
 import { IDBCache } from "@instructure/idb-cache";
 import { useCallback, useRef, useState, useEffect } from "react";
-import { deterministicHash, generateTextOfSize } from "./utils";
+import { deterministicHash } from "./utils";
 import { Button } from "@instructure/ui-buttons";
 import { Metric } from "@instructure/ui-metric";
 import { View } from "@instructure/ui-view";
@@ -17,6 +17,7 @@ import {
 	WrappedFlexItem,
 } from "./components/WrappedFlexItem";
 import { Test } from "./components/Test";
+import { generateTextOfSize } from "./fixtures";
 
 // For demonstration/testing purposes.
 // Do *not* store cacheKey to localStorage in production.
@@ -155,22 +156,28 @@ const App = () => {
 		saveContentKey(key);
 
 		const start1 = performance.now();
-		const paragraphs = Array.from({ length: DEFAULT_NUM_ITEMS }, (_, index) =>
-			generateTextOfSize(itemSize, `${key}-${index}`),
-		);
-		const end1 = performance.now();
-		setTimeToGenerate(end1 - start1);
+		try {
+			const paragraphs = await Promise.all(
+				Array.from({ length: DEFAULT_NUM_ITEMS }, (_, index) =>
+					generateTextOfSize(itemSize, `${key}-${index}`),
+				),
+			);
+			const end1 = performance.now();
+			setTimeToGenerate(end1 - start1);
 
-		const start2 = performance.now();
+			const start2 = performance.now();
 
-		for (let i = 0; i < DEFAULT_NUM_ITEMS; i++) {
-			await cache.setItem(`item-${key}-${i}`, paragraphs[i]);
+			for (let i = 0; i < DEFAULT_NUM_ITEMS; i++) {
+				await cache.setItem(`item-${key}-${i}`, paragraphs[i]);
+			}
+
+			const end2 = performance.now();
+			setSetItemTime(end2 - start2);
+
+			setHash1(deterministicHash(paragraphs.join("")));
+		} catch (error) {
+			console.error("Error during text generation and storage:", error);
 		}
-
-		const end2 = performance.now();
-		setSetItemTime(end2 - start2);
-
-		setHash1(deterministicHash(paragraphs.join("")));
 	}, [itemSize]);
 
 	const retrieveAndDecrypt = useCallback(async () => {
@@ -180,21 +187,25 @@ const App = () => {
 			return;
 		}
 
-		const results: Array<string | null> = [];
-		const start = performance.now();
+		try {
+			const results: Array<string | null> = [];
+			const start = performance.now();
 
-		for (let i = 0; i < DEFAULT_NUM_ITEMS; i++) {
-			const result = await cache.getItem(`item-${contentKey}-${i}`);
-			results.push(result);
+			for (let i = 0; i < DEFAULT_NUM_ITEMS; i++) {
+				const result = await cache.getItem(`item-${contentKey}-${i}`);
+				results.push(result);
+			}
+
+			const end = performance.now();
+			setGetItemTime(end - start);
+			setHash2(
+				results.filter((x) => x).length > 0
+					? deterministicHash(results.join(""))
+					: null,
+			);
+		} catch (error) {
+			console.error("Error during text retrieval and decryption:", error);
 		}
-
-		const end = performance.now();
-		setGetItemTime(end - start);
-		setHash2(
-			results.filter((x) => x).length > 0
-				? deterministicHash(results.join(""))
-				: null,
-		);
 	}, [contentKey]);
 
 	const cleanup = useCallback(async () => {
@@ -204,10 +215,14 @@ const App = () => {
 			return;
 		}
 
-		const start = performance.now();
-		await cache.cleanup();
-		const end = performance.now();
-		setCleanupTime(end - start);
+		try {
+			const start = performance.now();
+			await cache.cleanup();
+			const end = performance.now();
+			setCleanupTime(end - start);
+		} catch (error) {
+			console.error("Error during cache cleanup:", error);
+		}
 	}, []);
 
 	const count = useCallback(async () => {
@@ -217,11 +232,15 @@ const App = () => {
 			return;
 		}
 
-		const start = performance.now();
-		const count = await cache.count();
-		const end = performance.now();
-		setCountTime(end - start);
-		setItemCount(count);
+		try {
+			const start = performance.now();
+			const count = await cache.count();
+			const end = performance.now();
+			setCountTime(end - start);
+			setItemCount(count);
+		} catch (error) {
+			console.error("Error during cache count:", error);
+		}
 	}, []);
 
 	const clear = useCallback(async () => {
@@ -231,11 +250,15 @@ const App = () => {
 			return;
 		}
 
-		const start = performance.now();
-		await cache.clear();
-		localStorage.removeItem("keyCounter");
-		const end = performance.now();
-		setClearTime(end - start);
+		try {
+			const start = performance.now();
+			await cache.clear();
+			localStorage.removeItem("keyCounter");
+			const end = performance.now();
+			setClearTime(end - start);
+		} catch (error) {
+			console.error("Error during cache clear:", error);
+		}
 	}, []);
 
 	return (
