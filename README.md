@@ -129,3 +129,21 @@ flowchart TD
     WebWorker -.-> |Decrypted chunks| IDBCache
     IDBCache --> |"Item"| Application
 ```
+
+## Web APIs used
+
+- [IndexedDB](https://developer.mozilla.org/en-US/docs/Web/API/IndexedDB_API)
+- [Web Workers](https://developer.mozilla.org/en-US/docs/Web/API/Web_Workers_API)
+  - [MessageChannel](https://developer.mozilla.org/en-US/docs/Web/API/MessageChannel)
+  - [MessagePort](https://developer.mozilla.org/en-US/docs/Web/API/MessagePort)
+- [Web Crypto API](https://developer.mozilla.org/en-US/docs/Web/API/Web_Crypto_API)
+  - [SubtleCrypto](https://developer.mozilla.org/en-US/docs/Web/API/SubtleCrypto)
+  - [AES-GCM](https://developer.mozilla.org/en-US/docs/Web/API/AesGcmParams)
+  - [PBKDF2](https://developer.mozilla.org/en-US/docs/Web/API/Pbkdf2Params)
+- [ArrayBuffer](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/ArrayBuffer)
+
+## Related reading
+
+- [Is postMessage slow?](https://surma.dev/things/is-postmessage-slow/)
+- [Measure performance with the RAIL model](https://web.dev/articles/rail)
+- [LocalStorage vs. IndexedDB vs. Cookies vs. OPFS vs. WASM-SQLite](https://rxdb.info/articles/localstorage-indexeddb-cookies-opfs-sqlite-wasm.html)
