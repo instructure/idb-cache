@@ -306,7 +306,7 @@ const App = () => {
 									renderLabel="Item size (KiB):"
 									onChange={(e) => {
 										const newValue = Math.max(
-											Number.parseInt(e.target.value, 10) * 1024,
+											Number.parseInt(e.target.value || "0", 10) * 1024,
 											1024,
 										);
 										setItemSize(newValue);
@@ -335,7 +335,7 @@ const App = () => {
 									renderLabel="Chunk size (KiB):"
 									onChange={(e) => {
 										const newValue = Math.max(
-											Number.parseInt(e.target.value, 10) * 1024,
+											Number.parseInt(e.target.value || "0", 10) * 1024,
 											1024,
 										);
 										setChunkSize(newValue);
@@ -354,7 +354,8 @@ const App = () => {
 								<NumberInput
 									renderLabel="Max total chunks:"
 									onChange={(e) => {
-										const newValue = Number.parseInt(e.target.value, 10) || 1;
+										const newValue =
+											Number.parseInt(e.target.value || "0", 10) || 1;
 										setMaxTotalChunksStored(newValue);
 									}}
 									onIncrement={() => {
