@@ -165,6 +165,9 @@ const App = () => {
 			const end1 = performance.now();
 			setTimeToGenerate(end1 - start1);
 
+			// for accurate perf measurement
+			await new Promise((resolve) => requestAnimationFrame(resolve));
+
 			const start2 = performance.now();
 
 			for (let i = 0; i < DEFAULT_NUM_ITEMS; i++) {
@@ -188,6 +191,9 @@ const App = () => {
 		}
 
 		try {
+			// for accurate perf measurement
+			await new Promise((resolve) => requestAnimationFrame(resolve));
+
 			const results: Array<string | null> = [];
 			const start = performance.now();
 
@@ -216,6 +222,9 @@ const App = () => {
 		}
 
 		try {
+			// for accurate perf measurement
+			await new Promise((resolve) => requestAnimationFrame(resolve));
+
 			const start = performance.now();
 			await cache.cleanup();
 			const end = performance.now();
@@ -233,6 +242,9 @@ const App = () => {
 		}
 
 		try {
+			// for accurate perf measurement
+			await new Promise((resolve) => requestAnimationFrame(resolve));
+
 			const start = performance.now();
 			const count = await cache.count();
 			const end = performance.now();
@@ -251,6 +263,9 @@ const App = () => {
 		}
 
 		try {
+			// for accurate perf measurement
+			await new Promise((resolve) => requestAnimationFrame(resolve));
+
 			const start = performance.now();
 			await cache.clear();
 			localStorage.removeItem("keyCounter");
