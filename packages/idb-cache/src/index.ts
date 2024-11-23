@@ -28,7 +28,7 @@ import {
 } from "./errors";
 
 const DB_VERSION = 1;
-const DEFAULT_CHUNK_SIZE = 25000;
+const DEFAULT_CHUNK_SIZE = 25000; // recommendation: keep under 100KiB (cf. https://surma.dev/things/is-postmessage-slow/)
 const DEFAULT_GC_TIME = 7 * 24 * 60 * 60 * 1000;
 const DEFAULT_PBKDF2_ITERATIONS = 100000;
 const CLEANUP_INTERVAL = 60 * 1000;
