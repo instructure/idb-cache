@@ -10,6 +10,12 @@ import { LRUCache } from "./LRUCache";
 
 const uuidCache = new LRUCache<string, string>(1000);
 
+// Used to avoid main thread blocking
+//   even though it slows operations
+export function waitForAnimationFrame() {
+  return new Promise((resolve) => requestAnimationFrame(resolve));
+}
+
 function isValidHex(hex: string): boolean {
   return /^[0-9a-fA-F]{128}$/.test(hex);
 }
@@ -55,6 +61,7 @@ export async function deterministicUUID(key: string): Promise<string> {
 
   const encoder = new TextEncoder();
   const data = encoder.encode(key);
+  // Usually under 1 ms; not outsourced to worker
   const hashBuffer = await crypto.subtle.digest("SHA-512", data);
   const hashHex = bufferToHex(hashBuffer);
 
@@ -126,6 +133,7 @@ export async function openDatabase<T extends DBSchema>(
   dbVersion: number
 ): Promise<import("idb").IDBPDatabase<T>> {
   try {
+    await waitForAnimationFrame();
     return await openDB<T>(dbName, dbVersion, {
       upgrade(db) {
         createStoreWithIndexes(db, storeName);
@@ -135,6 +143,7 @@ export async function openDatabase<T extends DBSchema>(
     if (error instanceof DOMException && error.name === "VersionError") {
       console.warn(`VersionError: Deleting database ${dbName} and retrying...`);
       await deleteDB(dbName);
+      await waitForAnimationFrame();
       return await openDB<T>(dbName, dbVersion, {
         upgrade(db) {
           createStoreWithIndexes(db, storeName);

@@ -11,6 +11,7 @@ import {
   parseChunkIndexFromKey,
   getAllChunkKeysForBaseKey,
   deterministicUUID,
+  waitForAnimationFrame,
 } from "./utils";
 import { encryptionWorkerFunction } from "./encryptionWorkerFn";
 import {
@@ -373,6 +374,7 @@ export class IDBCache implements AsyncStorage {
       if (!this.dbReadyPromise) return null;
       await this.ensureWorkerInitialized();
 
+      await waitForAnimationFrame();
       const db = await this.dbReadyPromise;
       const baseKey = await deterministicUUID(`${this.cacheKey}:${itemKey}`);
       const now = Date.now();
@@ -509,6 +511,7 @@ export class IDBCache implements AsyncStorage {
       if (!this.dbReadyPromise) return;
       await this.ensureWorkerInitialized();
 
+      await waitForAnimationFrame();
       const db = await this.dbReadyPromise;
       const baseKey = await deterministicUUID(`${this.cacheKey}:${itemKey}`);
       const expirationTimestamp = Date.now() + this.gcTime;
