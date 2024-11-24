@@ -552,6 +552,16 @@ export class IDBCache implements AsyncStorage {
       if (!this.dbReadyPromise) return;
       await this.ensureWorkerInitialized();
 
+      // Check if the new item's chunks would exceed maxTotalChunks config
+      if (this.maxTotalChunks !== undefined) {
+        const newItemChunks = Math.ceil(value.length / this.chunkSize);
+        if (newItemChunks > this.maxTotalChunks) {
+          throw new IDBCacheError(
+            `Cannot store item: chunks needed (${newItemChunks}) exceeds maxTotalChunks (${this.maxTotalChunks})`
+          );
+        }
+      }
+
       if (this.priority === "low") {
         await waitForAnimationFrame();
       }
