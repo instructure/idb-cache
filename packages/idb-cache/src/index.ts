@@ -83,7 +83,7 @@ interface IDBCacheConfig {
    */
   pbkdf2Iterations?: number;
   /**
-   * Low priority delays start of operations slightly to reduce load on the event loop.
+   * Low priority slightly delays start of operations to reduce load on the event loop.
    */
   priority?: "normal" | "low";
 }

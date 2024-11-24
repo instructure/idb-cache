@@ -313,6 +313,7 @@ const App = () => {
 
 							<WrappedFlexItem>
 								<NumberInput
+									data-testid="item-size-input"
 									renderLabel={
 										<Flex alignItems="end" direction="row">
 											<Flex.Item as="div">
@@ -376,6 +377,7 @@ const App = () => {
 
 							<WrappedFlexItem>
 								<NumberInput
+									data-testid="max-chunks-input"
 									renderLabel={
 										<Flex alignItems="end">
 											<Flex.Item as="div">
@@ -418,7 +420,7 @@ const App = () => {
 											</Flex.Item>
 											<Tooltip
 												color="primary-inverse"
-												renderTip="Low priority delays start of operations slightly to reduce load on event loop."
+												renderTip="Low priority slightly delays start of operations to reduce load on event loop."
 												offsetY="5px"
 											>
 												<Flex.Item as="div">
