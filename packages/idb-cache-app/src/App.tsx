@@ -413,6 +413,7 @@ const App = () => {
 								<RadioInputGroup
 									name="priority"
 									value={priority}
+									data-testid="priority-input"
 									description={
 										<Flex alignItems="end">
 											<Flex.Item as="div">
