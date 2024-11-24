@@ -1,13 +1,31 @@
 import { Button } from "@instructure/ui-buttons";
 import { Flex } from "@instructure/ui-flex";
+import { IconInfoLine } from "@instructure/ui-icons";
 import { TextInput } from "@instructure/ui-text-input";
+import { Tooltip } from "@instructure/ui-tooltip";
+import { View } from "@instructure/ui-view";
 
 export function CacheBuster({ cacheBuster }: { cacheBuster: string }) {
 	return (
 		<Flex alignItems="end">
 			<Flex.Item shouldGrow>
 				<TextInput
-					renderLabel="Cache buster:"
+					renderLabel={
+						<Flex alignItems="end">
+							<Flex.Item as="div">
+								<View margin="0 xx-small 0 0">Cache buster</View>
+							</Flex.Item>
+							<Tooltip
+								color="primary-inverse"
+								renderTip="Unique value (not sensitive) used to invalidate old cache entries."
+								offsetY="5px"
+							>
+								<Flex.Item as="div">
+									<IconInfoLine />
+								</Flex.Item>
+							</Tooltip>
+						</Flex>
+					}
 					interaction="disabled"
 					defaultValue={cacheBuster}
 				/>

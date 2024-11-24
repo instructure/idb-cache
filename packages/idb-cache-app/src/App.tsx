@@ -18,6 +18,14 @@ import {
 } from "./components/WrappedFlexItem";
 import { Test } from "./components/Test";
 import { generateTextOfSize } from "./fixtures";
+import { RadioInputGroup, RadioInput } from "@instructure/ui-radio-input";
+import { IconInfoLine } from "@instructure/ui-icons";
+import { Tooltip } from "@instructure/ui-tooltip";
+
+const DEFAULT_NUM_ITEMS = 1;
+const DEFAULT_ITEM_SIZE = 1024 * 32; // 32KiB
+const DEFAULT_CHUNK_SIZE = 1024 * 25; // 25 KiB
+const DEFAULT_MAX_CHUNKS_STORED = 5000;
 
 // For demonstration/testing purposes.
 // Do *not* store cacheKey to localStorage in production.
@@ -32,13 +40,6 @@ if (!initialCacheBuster) {
 	initialCacheBuster = crypto.randomUUID();
 	localStorage.cacheBuster = initialCacheBuster;
 }
-
-const DEFAULT_NUM_ITEMS = 1;
-
-// Default item size set to 32KB
-const DEFAULT_ITEM_SIZE = 1024 * 32;
-const DEFAULT_CHUNK_SIZE = 1024 * 25; // 25 KiB
-const DEAFULT_MAX_CHUNKS_STORED = 5000;
 
 const getInitialItemSize = () => {
 	const params = new URLSearchParams(window.location.hash.slice(1));
@@ -67,8 +68,8 @@ const App = () => {
 	const [itemCount, setItemCount] = useState<number | null>(null);
 	const [maxTotalChunksStored, setMaxTotalChunksStored] = useState<number>(
 		() => {
-			const stored = localStorage.getItem("maxTotalChunksStored");
-			return stored ? Number.parseInt(stored, 10) : DEAFULT_MAX_CHUNKS_STORED;
+			const stored = localStorage.maxTotalChunksStored;
+			return stored ? Number.parseInt(stored, 10) : DEFAULT_MAX_CHUNKS_STORED;
 		},
 	);
 
@@ -303,7 +304,22 @@ const App = () => {
 
 							<WrappedFlexItem>
 								<NumberInput
-									renderLabel="Item size (KiB):"
+									renderLabel={
+										<Flex alignItems="end" direction="row">
+											<Flex.Item as="div">
+												<View margin="0 xx-small 0 0">Item size (KiB)</View>
+											</Flex.Item>
+											<Tooltip
+												color="primary-inverse"
+												renderTip="When an item exceeds this size, it splits into multiple chunks."
+												offsetY="5px"
+											>
+												<Flex.Item as="div">
+													<IconInfoLine />
+												</Flex.Item>
+											</Tooltip>
+										</Flex>
+									}
 									onChange={(e) => {
 										const newValue = Math.max(
 											Number.parseInt(e.target.value || "0", 10) * 1024,
@@ -317,7 +333,6 @@ const App = () => {
 									onDecrement={() => {
 										setItemSize((prev) => Math.max(prev - 1024, 1024));
 									}}
-									isRequired
 									value={Math.round(itemSize / 1024)} // Display in KiB
 								/>
 							</WrappedFlexItem>
@@ -332,7 +347,7 @@ const App = () => {
 							<WrappedFlexItem>
 								<NumberInput
 									disabled
-									renderLabel="Chunk size (KiB):"
+									renderLabel="Chunk size (KiB)"
 									onChange={(e) => {
 										const newValue = Math.max(
 											Number.parseInt(e.target.value || "0", 10) * 1024,
@@ -352,7 +367,22 @@ const App = () => {
 
 							<WrappedFlexItem>
 								<NumberInput
-									renderLabel="Max total chunks:"
+									renderLabel={
+										<Flex alignItems="end">
+											<Flex.Item as="div">
+												<View margin="0 xx-small 0 0">Max total chunks</View>
+											</Flex.Item>
+											<Tooltip
+												color="primary-inverse"
+												renderTip="During cleanup, idb-cache removes the oldest surplus chunks."
+												offsetY="5px"
+											>
+												<Flex.Item as="div">
+													<IconInfoLine />
+												</Flex.Item>
+											</Tooltip>
+										</Flex>
+									}
 									onChange={(e) => {
 										const newValue =
 											Number.parseInt(e.target.value || "0", 10) || 1;
@@ -366,6 +396,33 @@ const App = () => {
 									}}
 									value={maxTotalChunksStored}
 								/>
+							</WrappedFlexItem>
+
+							<WrappedFlexItem>
+								<RadioInputGroup
+									name="priority"
+									defaultValue="normal"
+									description={
+										<Flex alignItems="end">
+											<Flex.Item as="div">
+												<View margin="0 xx-small 0 0">Priority</View>
+											</Flex.Item>
+											<Tooltip
+												color="primary-inverse"
+												renderTip="Low priority delays start of operations slightly to reduce load on event loop."
+												offsetY="5px"
+											>
+												<Flex.Item as="div">
+													<IconInfoLine />
+												</Flex.Item>
+											</Tooltip>
+										</Flex>
+									}
+									variant="toggle"
+								>
+									<RadioInput label="Normal" value="normal" />
+									<RadioInput label="Low" value="low" />
+								</RadioInputGroup>
 							</WrappedFlexItem>
 						</WrappedFlexContainer>
 

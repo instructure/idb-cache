@@ -1,6 +1,9 @@
 import { Button } from "@instructure/ui-buttons";
 import { Flex } from "@instructure/ui-flex";
+import { IconInfoLine } from "@instructure/ui-icons";
 import { TextInput } from "@instructure/ui-text-input";
+import { Tooltip } from "@instructure/ui-tooltip";
+import { View } from "@instructure/ui-view";
 
 export function CacheKey({
 	cacheKey,
@@ -11,7 +14,22 @@ export function CacheKey({
 		<Flex alignItems="end">
 			<Flex.Item shouldGrow>
 				<TextInput
-					renderLabel="Cache key:"
+					renderLabel={
+						<Flex alignItems="end">
+							<Flex.Item as="div">
+								<View margin="0 xx-small 0 0">Cache key</View>
+							</Flex.Item>
+							<Tooltip
+								color="primary-inverse"
+								renderTip="Sensitive identifier used for securely encrypting data."
+								offsetY="5px"
+							>
+								<Flex.Item as="div">
+									<IconInfoLine />
+								</Flex.Item>
+							</Tooltip>
+						</Flex>
+					}
 					interaction="disabled"
 					defaultValue={cacheKey}
 				/>

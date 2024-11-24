@@ -38,21 +38,54 @@ const DURATION_THRESHOLD = 200;
 const isSubtleCryptoSupported = crypto?.subtle;
 
 interface IDBCacheConfig {
-  cacheBuster: string;
+  /**
+   * Sensitive identifier used for securely encrypting data.
+   */
   cacheKey: string;
+  /**
+   * Unique value (not sensitive) used to invalidate old cache entries.
+   */
+  cacheBuster: string;
+  /**
+   * Size of each chunk in bytes. When an item exceeds this size,
+   * it splits into multiple chunks. Defaults to 25000 bytes.
+   */
   chunkSize?: number;
+  /**
+   * Milliseconds between cleanup operations to remove expired
+   * or surplus cached items.
+   */
   cleanupInterval?: number;
+  /**
+   * Name of the IndexedDB database used for caching.
+   * Defaults to "idb-cache" if not specified.
+   */
   dbName?: string;
+  /**
+   * Enables detailed logging for debugging purposes
+   * when set to true.
+   */
   debug?: boolean;
+  /**
+   * Milliseconds after which cached items are considered eligible
+   * for removal during garbage collection.
+   */
   gcTime?: number;
   /**
-   * The maximum number of chunks to store in the cache.
-   * If set, during cleanup intervals, the cache will ensure that no more than maxTotalChunks are stored.
-   * Excess oldest chunks will be removed to enforce this limit.
-   * Defaults to undefined, meaning no limit.
+   * The maximum number of chunks to store in the cache. During cleanup,
+   * idb-cache removes the oldest excess chunks. Defaults to undefined,
+   * meaning no limit.
    */
   maxTotalChunks?: number;
+  /**
+   * Iterations used in the encryption algorithm to strengthen cryptographic keys.
+   * More iterations increase security but also processing time.
+   */
   pbkdf2Iterations?: number;
+  /**
+   * Low priority delays start of operations slightly to reduce load on the event loop.
+   */
+  priority?: "normal" | "low";
 }
 
 export interface AsyncStorage {
