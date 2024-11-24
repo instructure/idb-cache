@@ -51,7 +51,10 @@ export function generateUUIDFromHash(hashHex: string): string {
  * @param itemKey - The item key.
  * @returns A deterministic UUID string.
  */
-export async function deterministicUUID(key: string): Promise<string> {
+export async function deterministicUUID(
+  key: string,
+  priority = "normal"
+): Promise<string> {
   if (uuidCache.has(key)) {
     const uuid = uuidCache.get(key);
     if (typeof uuid === "string") {
@@ -61,6 +64,9 @@ export async function deterministicUUID(key: string): Promise<string> {
 
   const encoder = new TextEncoder();
   const data = encoder.encode(key);
+  if (priority === "low") {
+    await waitForAnimationFrame();
+  }
   // Usually under 1 ms; not outsourced to worker
   const hashBuffer = await crypto.subtle.digest("SHA-512", data);
   const hashHex = bufferToHex(hashBuffer);

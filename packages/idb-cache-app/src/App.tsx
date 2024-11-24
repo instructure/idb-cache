@@ -72,6 +72,10 @@ const App = () => {
 			return stored ? Number.parseInt(stored, 10) : DEFAULT_MAX_CHUNKS_STORED;
 		},
 	);
+	const [priority, setPriority] = useState<"normal" | "low">(() => {
+		const stored = localStorage.priority;
+		return ["normal", "low"].includes(stored) ? stored : "normal";
+	});
 
 	const [cacheReady, setCacheReady] = useState<boolean>(false);
 
@@ -110,6 +114,7 @@ const App = () => {
 					debug: true,
 					chunkSize: chunkSize,
 					maxTotalChunks: maxTotalChunksStored,
+					priority,
 				});
 
 				if (!isCancelled) {
@@ -138,11 +143,15 @@ const App = () => {
 				setCacheReady(false);
 			}
 		};
-	}, [chunkSize, maxTotalChunksStored]);
+	}, [chunkSize, maxTotalChunksStored, priority]);
 
 	useEffect(() => {
 		localStorage.setItem("maxTotalChunksStored", String(maxTotalChunksStored));
 	}, [maxTotalChunksStored]);
+
+	useEffect(() => {
+		localStorage.setItem("priority", String(priority));
+	}, [priority]);
 
 	const encryptAndStore = useCallback(async () => {
 		const cache = cacheRef.current;
@@ -401,7 +410,7 @@ const App = () => {
 							<WrappedFlexItem>
 								<RadioInputGroup
 									name="priority"
-									defaultValue="normal"
+									value={priority}
 									description={
 										<Flex alignItems="end">
 											<Flex.Item as="div">
@@ -419,6 +428,9 @@ const App = () => {
 										</Flex>
 									}
 									variant="toggle"
+									onChange={(e) => {
+										setPriority(e.target.value === "low" ? "low" : "normal");
+									}}
 								>
 									<RadioInput label="Normal" value="normal" />
 									<RadioInput label="Low" value="low" />

@@ -29,14 +29,15 @@ import { IDBCache } from '@instructure/idb-cache';
 // Initialize the cache
 const cache = new IDBCache({
   cacheKey: 'your-secure-key',
-  cacheBuster: 'unique-cache-buster', // Doubles as salt
-  // dbName?: string;
+  cacheBuster: 'unique-cache-buster',
   // chunkSize?: number;
-  // maxTotalChunks?: number
   // cleanupInterval?: number;
-  // pbkdf2Iterations?: number;
-  // gcTime?: number;
+  // dbName?: string;
   // debug?: boolean,
+  // gcTime?: number;
+  // maxTotalChunks?: number
+  // pbkdf2Iterations?: number;
+  // priority?: "normal" | "low"
 });
 
 // Store an item

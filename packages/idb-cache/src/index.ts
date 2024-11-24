@@ -115,6 +115,7 @@ export class IDBCache implements AsyncStorage {
   private cacheBuster: string;
   private debug: boolean;
   private maxTotalChunks?: number;
+  private priority: "normal" | "low" = "normal";
 
   constructor(config: IDBCacheConfig) {
     const {
@@ -127,6 +128,7 @@ export class IDBCache implements AsyncStorage {
       cleanupInterval = CLEANUP_INTERVAL,
       pbkdf2Iterations = DEFAULT_PBKDF2_ITERATIONS,
       maxTotalChunks,
+      priority = "normal",
     } = config;
 
     this.storeName = "cache";
@@ -139,6 +141,7 @@ export class IDBCache implements AsyncStorage {
     this.pbkdf2Iterations = pbkdf2Iterations;
     this.maxTotalChunks = maxTotalChunks;
     this.pendingRequests = new Map();
+    this.priority = priority;
 
     if (!window.indexedDB)
       throw new DatabaseError("IndexedDB is not supported.");
@@ -230,6 +233,9 @@ export class IDBCache implements AsyncStorage {
   public async cleanup(): Promise<void> {
     try {
       const db = await this.dbReadyPromise;
+      if (this.priority === "low") {
+        await waitForAnimationFrame();
+      }
       const transaction = db.transaction(this.storeName, "readwrite");
       const store = transaction.store;
       const timestampIndex = store.index("byTimestamp");
@@ -407,7 +413,9 @@ export class IDBCache implements AsyncStorage {
       if (!this.dbReadyPromise) return null;
       await this.ensureWorkerInitialized();
 
-      await waitForAnimationFrame();
+      if (this.priority === "low") {
+        await waitForAnimationFrame();
+      }
       const db = await this.dbReadyPromise;
       const baseKey = await deterministicUUID(`${this.cacheKey}:${itemKey}`);
       const now = Date.now();
@@ -544,11 +552,16 @@ export class IDBCache implements AsyncStorage {
       if (!this.dbReadyPromise) return;
       await this.ensureWorkerInitialized();
 
-      await waitForAnimationFrame();
+      if (this.priority === "low") {
+        await waitForAnimationFrame();
+      }
       const db = await this.dbReadyPromise;
       const baseKey = await deterministicUUID(`${this.cacheKey}:${itemKey}`);
       const expirationTimestamp = Date.now() + this.gcTime;
 
+      if (this.priority === "low") {
+        await waitForAnimationFrame();
+      }
       const existingChunkKeys = await getAllChunkKeysForBaseKey(
         db,
         this.storeName,
@@ -570,8 +583,12 @@ export class IDBCache implements AsyncStorage {
         const chunk = value.slice(i, i + this.chunkSize);
         const chunkIndex = Math.floor(i / this.chunkSize);
 
+        if (this.priority === "low") {
+          await waitForAnimationFrame();
+        }
         const chunkHash = await deterministicUUID(
-          `${this.cacheKey}:${this.cacheBuster}:${chunk}`
+          `${this.cacheKey}:${this.cacheBuster}:${chunk}`,
+          this.priority
         );
         const chunkKey = generateChunkKey(baseKey, chunkIndex, chunkHash);
         newChunkKeys.add(chunkKey);
@@ -579,6 +596,9 @@ export class IDBCache implements AsyncStorage {
         const isLastChunk = chunkIndex === totalChunks - 1;
 
         if (existingChunkKeysSet.has(chunkKey)) {
+          if (this.priority === "low") {
+            await waitForAnimationFrame();
+          }
           const existingChunk = await db.get(this.storeName, chunkKey);
           if (
             existingChunk &&
@@ -636,7 +656,9 @@ export class IDBCache implements AsyncStorage {
       }
 
       await Promise.all(operationPromises);
-
+      if (this.priority === "low") {
+        await waitForAnimationFrame();
+      }
       await tx.done;
 
       const duration = Date.now() - startTime;
