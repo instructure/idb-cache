@@ -131,12 +131,13 @@ flowchart TD
     IDBCache --> |"Item"| Application
 ```
 
-## Web APIs used
+## Technologies used
 
 - [IndexedDB](https://developer.mozilla.org/en-US/docs/Web/API/IndexedDB_API)
 - [Web Workers](https://developer.mozilla.org/en-US/docs/Web/API/Web_Workers_API)
   - [MessageChannel](https://developer.mozilla.org/en-US/docs/Web/API/MessageChannel)
   - [MessagePort](https://developer.mozilla.org/en-US/docs/Web/API/MessagePort)
+  - [Transferable objects](https://developer.mozilla.org/en-US/docs/Web/API/Web_Workers_API/Transferable_objects)
 - [Web Crypto API](https://developer.mozilla.org/en-US/docs/Web/API/Web_Crypto_API)
   - [SubtleCrypto](https://developer.mozilla.org/en-US/docs/Web/API/SubtleCrypto)
   - [AES-GCM](https://developer.mozilla.org/en-US/docs/Web/API/AesGcmParams)
