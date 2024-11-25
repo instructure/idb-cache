@@ -70,7 +70,9 @@ export function createWorkerFromFunction(
     type: "application/javascript",
   });
   const url = URL.createObjectURL(blob);
-  const worker = new SharedWorker(url);
+  const worker = new SharedWorker(url, {
+    name: "idb-cache-worker",
+  });
 
   const port = worker.port;
 
