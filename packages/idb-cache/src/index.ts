@@ -28,16 +28,20 @@ import {
   IDBCacheError,
 } from "./errors";
 
-const DB_VERSION = 1;
-const DEFAULT_CHUNK_SIZE = 25000; // recommendation: keep under 100KiB (cf. https://surma.dev/things/is-postmessage-slow/)
-const DEFAULT_GC_TIME = 7 * 24 * 60 * 60 * 1000;
-const DEFAULT_PBKDF2_ITERATIONS = 100000;
-const CLEANUP_INTERVAL = 60 * 1000;
-const DURATION_THRESHOLD = 200;
+export interface AsyncStorage {
+  getItem: (key: string) => Promise<string | null>;
+  setItem: (key: string, value: string) => Promise<unknown>;
+  removeItem: (key: string) => Promise<void>;
+  clear: () => Promise<void>;
+}
 
-const isSubtleCryptoSupported = crypto?.subtle;
+export interface IDBCacheInterface extends AsyncStorage {
+  destroy: (options?: { clearData?: boolean }) => Promise<void>;
+  cleanup: () => Promise<void>;
+  count: () => Promise<number>;
+}
 
-interface IDBCacheConfig {
+export interface IDBCacheConfig {
   /**
    * Sensitive identifier used for securely encrypting data.
    */
@@ -88,14 +92,16 @@ interface IDBCacheConfig {
   priority?: "normal" | "low";
 }
 
-export interface AsyncStorage {
-  getItem: (key: string) => Promise<string | null>;
-  setItem: (key: string, value: string) => Promise<unknown>;
-  removeItem: (key: string) => Promise<void>;
-  clear: () => Promise<void>;
-}
+const DB_VERSION = 1;
+const DEFAULT_CHUNK_SIZE = 25000; // recommendation: keep under 100KiB (cf. https://surma.dev/things/is-postmessage-slow/)
+const DEFAULT_GC_TIME = 7 * 24 * 60 * 60 * 1000;
+const DEFAULT_PBKDF2_ITERATIONS = 100000;
+const CLEANUP_INTERVAL = 60 * 1000;
+const DURATION_THRESHOLD = 200;
 
-export class IDBCache implements AsyncStorage {
+const isSubtleCryptoSupported = crypto?.subtle;
+
+export class IDBCache implements IDBCacheInterface {
   dbReadyPromise: Promise<import("idb").IDBPDatabase<IDBCacheSchema>>;
   private storeName: STORE;
   private worker: Worker | null = null;
@@ -406,7 +412,7 @@ export class IDBCache implements AsyncStorage {
    * @throws {DatabaseError} If there is an issue accessing the database.
    * @throws {WorkerInitializationError} If the worker is not initialized properly.
    */
-  async getItem(itemKey: string): Promise<string | null> {
+  public async getItem(itemKey: string): Promise<string | null> {
     try {
       const startTime = Date.now();
 
@@ -545,7 +551,7 @@ export class IDBCache implements AsyncStorage {
    * @throws {DatabaseError} If there is an issue accessing the database.
    * @throws {EncryptionError} If encryption fails.
    */
-  async setItem(itemKey: string, value: string): Promise<void> {
+  public async setItem(itemKey: string, value: string): Promise<void> {
     try {
       const startTime = Date.now();
 
@@ -702,7 +708,7 @@ export class IDBCache implements AsyncStorage {
    * @param key - The key associated with the item to remove.
    * @throws {DatabaseError} If there is an issue accessing the database.
    */
-  async removeItem(itemKey: string): Promise<void> {
+  public async removeItem(itemKey: string): Promise<void> {
     try {
       const db = await this.dbReadyPromise;
       const baseKey = await deterministicUUID(`${this.cacheKey}:${itemKey}`);
@@ -740,7 +746,7 @@ export class IDBCache implements AsyncStorage {
    * @returns The total number of entries (chunks) in the cache.
    * @throws {DatabaseError} If there is an issue accessing the database.
    */
-  async count(): Promise<number> {
+  public async count(): Promise<number> {
     try {
       const db = await this.dbReadyPromise;
       const transaction = db.transaction(this.storeName, "readonly");
@@ -768,7 +774,7 @@ export class IDBCache implements AsyncStorage {
    * Clears all items from the cache without affecting the worker or pending requests.
    * @throws {DatabaseError} If there is an issue accessing the database.
    */
-  async clear(): Promise<void> {
+  public async clear(): Promise<void> {
     try {
       const db = await this.dbReadyPromise;
       const transaction = db.transaction(this.storeName, "readwrite");
