@@ -104,7 +104,7 @@ const isSubtleCryptoSupported = crypto?.subtle;
 export class IDBCache implements IDBCacheInterface {
   dbReadyPromise: Promise<import("idb").IDBPDatabase<IDBCacheSchema>>;
   private storeName: STORE;
-  private worker: Worker | null = null;
+  private worker: SharedWorker | null = null;
   private port: MessagePort | null = null;
   private pendingRequests: Map<
     string,
@@ -183,7 +183,7 @@ export class IDBCache implements IDBCacheInterface {
   }
 
   /**
-   * Initializes the worker by creating it, setting up communication, and handling initialization.
+   * Initializes the SharedWorker by creating it, setting up communication, and handling initialization.
    * @param cacheKey - The cache key used for encryption/decryption.
    * @param cacheBuster - The cacheBuster used as a fixed salt.
    * @throws {WorkerInitializationError} If the worker fails to initialize.
@@ -324,7 +324,7 @@ export class IDBCache implements IDBCacheInterface {
 
             // Define key range for this baseKey
             const lowerBound = `${baseKey}-chunk-000000-`;
-            const upperBound = `${baseKey}-chunk-999999\uffff`;
+            const upperBound = `${baseKey}-chunk-999999￿`;
             const range = IDBKeyRange.bound(
               lowerBound,
               upperBound,
@@ -800,7 +800,7 @@ export class IDBCache implements IDBCacheInterface {
   }
 
   /**
-   * Destroys the IDBCache instance by clearing data (optional), releasing resources, and terminating the worker.
+   * Destroys the IDBCache instance by clearing data (optional), releasing resources, and terminating the SharedWorker.
    * @param options - Configuration options for destruction.
    * @param options.clearData - Whether to clear all cached data before destruction.
    * @throws {DatabaseError} If there is an issue accessing the database during data clearing.
@@ -831,7 +831,7 @@ export class IDBCache implements IDBCacheInterface {
       }
 
       if (this.worker) {
-        this.worker.terminate();
+        this.worker.port.close();
         this.worker = null;
       }
 

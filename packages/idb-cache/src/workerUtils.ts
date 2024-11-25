@@ -14,6 +14,9 @@ import {
   IDBCacheError,
 } from "./errors";
 
+/**
+ * Utility type guards for Worker responses
+ */
 function isReadyResponse(
   message: WorkerResponse
 ): message is { type: "ready" } {
@@ -51,7 +54,7 @@ function isErrorResponse(
 }
 
 /**
- * Creates a worker from a given function and sets up initial communication.
+ * Creates a SharedWorker from a given function and sets up initial communication.
  * @param fn - The worker function to execute.
  * @param rejectAll - Function to call to reject all pending requests in case of failure.
  * @returns An object containing the worker instance and its message port.
@@ -60,38 +63,34 @@ export function createWorkerFromFunction(
   fn: () => void,
   rejectAll: (errorMessage: string) => void
 ): {
-  worker: Worker;
+  worker: SharedWorker;
   port: MessagePort;
 } {
   const blob = new Blob([`(${fn.toString()})()`], {
     type: "application/javascript",
   });
   const url = URL.createObjectURL(blob);
-  const worker = new Worker(url);
+  const worker = new SharedWorker(url);
 
-  const channel = new MessageChannel();
+  const port = worker.port;
 
-  worker.postMessage({ type: "init" }, [channel.port2]);
-
-  worker.onmessage = () => {
-    URL.revokeObjectURL(url);
-  };
+  port.start();
 
   worker.onerror = (event) => {
-    console.error("Worker encountered an error:", event.message);
-    rejectAll("Worker encountered an error and was terminated.");
-    worker.terminate();
+    console.error("SharedWorker encountered an error:", event.message);
+    rejectAll("SharedWorker encountered an error and was terminated.");
+    worker.port.close();
   };
 
-  channel.port1.onmessageerror = () => {
+  port.onmessageerror = () => {
     console.warn(
-      "MessagePort encountered a message error. Worker may have been terminated."
+      "MessagePort encountered a message error. SharedWorker may have been terminated."
     );
-    rejectAll("Worker was terminated unexpectedly.");
-    channel.port1.close();
+    rejectAll("SharedWorker was terminated unexpectedly.");
+    port.close();
   };
 
-  return { worker, port: channel.port1 };
+  return { worker, port };
 }
 
 /**
@@ -176,12 +175,14 @@ export function initializeWorker(
   };
 
   port.onmessageerror = (e: MessageEvent) => {
-    console.error("Worker encountered a message error:", e);
-    const error = new WorkerInitializationError("Worker failed to initialize");
+    console.error("SharedWorker encountered a message error:", e);
+    const error = new WorkerInitializationError(
+      "SharedWorker failed to communicate properly."
+    );
     rejectReady(error);
     rejectAllPendingRequests(
       pendingRequests,
-      "Worker encountered an error and was terminated."
+      "SharedWorker encountered an error and was terminated."
     );
     port.close();
   };
@@ -229,13 +230,13 @@ export async function sendMessageToWorker<T extends WorkerMessage["type"]>(
         port.postMessage(message);
       }
     } catch (error) {
-      console.error("Failed to post message to worker:", error);
+      console.error("Failed to post message to SharedWorker:", error);
       const pending = pendingRequests.get(requestId);
       if (pending) {
         clearTimeout(pending.timer);
         pending.reject(
           new WorkerInitializationError(
-            "Failed to communicate with the worker."
+            "Failed to communicate with the SharedWorker."
           )
         );
         pendingRequests.delete(requestId);

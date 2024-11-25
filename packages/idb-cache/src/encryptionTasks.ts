@@ -8,7 +8,7 @@ import {
 } from "./errors";
 
 /**
- * Encrypts a chunk of data using the worker.
+ * Encrypts a chunk of data using the SharedWorker.
  * @param port - The MessagePort instance.
  * @param value - The plaintext string to encrypt.
  * @param pendingRequests - Map of pending requests awaiting responses.
@@ -50,7 +50,7 @@ export async function encryptChunk(
 }
 
 /**
- * Decrypts a chunk of data using the worker.
+ * Decrypts a chunk of data using the SharedWorker.
  * @param port - The MessagePort instance.
  * @param iv - The Initialization Vector used during encryption.
  * @param ciphertext - The encrypted data.

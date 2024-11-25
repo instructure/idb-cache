@@ -3,11 +3,12 @@
 
 import type { WorkerMessage } from "./types";
 
+declare const self: SharedWorkerGlobalScope;
+
 export function encryptionWorkerFunction() {
   let cacheKey: Uint8Array | null = null;
   const derivedKeyCache: Map<string, CryptoKey> = new Map();
   let pbkdf2Iterations = 100000;
-  let port: MessagePort | null = null;
   let fixedSalt: ArrayBuffer | null = null;
 
   async function getKeyFromCacheKey(
@@ -59,12 +60,16 @@ export function encryptionWorkerFunction() {
       throw new Error("Cache key not provided for encryption worker");
     }
     try {
-      port?.postMessage({ type: "ready" });
+      for (const port of ports) {
+        port.postMessage({ type: "ready" });
+      }
     } catch (error: unknown) {
       console.error("Worker: Failed to initialize AES key:", error);
       const errorMessage =
         error instanceof Error ? error.message : "Unknown initialization error";
-      port?.postMessage({ type: "initError", error: errorMessage });
+      for (const port of ports) {
+        port.postMessage({ type: "initError", error: errorMessage });
+      }
     }
   }
 
@@ -158,7 +163,7 @@ export function encryptionWorkerFunction() {
     }
   }
 
-  function handleEncrypt(requestId: string, value: string) {
+  function handleEncrypt(requestId: string, value: string, port: MessagePort) {
     enqueueTask(async () => {
       try {
         const encrypted = await encrypt(value);
@@ -186,7 +191,8 @@ export function encryptionWorkerFunction() {
   function handleDecrypt(
     requestId: string,
     iv: ArrayBuffer,
-    ciphertext: ArrayBuffer
+    ciphertext: ArrayBuffer,
+    port: MessagePort
   ) {
     enqueueTask(async () => {
       try {
@@ -209,73 +215,71 @@ export function encryptionWorkerFunction() {
     });
   }
 
-  async function onMessage(e: MessageEvent<WorkerMessage>) {
-    const { type, payload, requestId } = e.data;
+  const ports: MessagePort[] = [];
 
-    switch (type) {
-      case "initialize":
-        {
-          const {
-            cacheKey: incomingCacheKey,
-            pbkdf2Iterations: incomingIterations,
-            cacheBuster,
-          } = payload;
-          cacheKey = new TextEncoder().encode(incomingCacheKey);
-          pbkdf2Iterations = incomingIterations || 100000;
-          fixedSalt = new TextEncoder().encode(cacheBuster).buffer;
-          await initializeKey();
-        }
-        break;
+  function onConnect(e: MessageEvent) {
+    const port = e.ports[0];
+    ports.push(port);
+    port.onmessage = (event: MessageEvent<WorkerMessage>) => {
+      const { type, payload, requestId } = event.data;
 
-      case "encrypt":
-        {
-          const { value } = payload;
-          await handleEncrypt(requestId, value);
-        }
-        break;
-
-      case "decrypt":
-        {
-          const { iv, ciphertext } = payload;
-          await handleDecrypt(requestId, iv, ciphertext);
-        }
-        break;
-
-      case "destroy":
-        {
-          if (cacheKey) {
-            cacheKey.fill(0);
-            cacheKey = null;
+      switch (type) {
+        case "initialize":
+          {
+            const {
+              cacheKey: incomingCacheKey,
+              pbkdf2Iterations: incomingIterations,
+              cacheBuster,
+            } = payload;
+            cacheKey = new TextEncoder().encode(incomingCacheKey);
+            pbkdf2Iterations = incomingIterations || 100000;
+            fixedSalt = new TextEncoder().encode(cacheBuster).buffer;
+            initializeKey().catch((error) => {
+              console.error("Worker: Initialization failed:", error);
+            });
           }
-          if (fixedSalt) {
-            const saltArray = new Uint8Array(fixedSalt);
-            saltArray.fill(0);
-            fixedSalt = null;
-          }
-          if (port) {
-            port.close();
-            port = null;
-          }
-          self.close();
-        }
-        break;
+          break;
 
-      default:
-        console.warn(
-          `Worker: Unknown message type received: ${type}. Ignoring the message.`
-        );
-    }
+        case "encrypt":
+          {
+            const { value } = payload;
+            handleEncrypt(requestId, value, port);
+          }
+          break;
+
+        case "decrypt":
+          {
+            const { iv, ciphertext } = payload;
+            handleDecrypt(requestId, iv, ciphertext, port);
+          }
+          break;
+
+        case "destroy":
+          {
+            if (cacheKey) {
+              cacheKey.fill(0);
+              cacheKey = null;
+            }
+            if (fixedSalt) {
+              const saltArray = new Uint8Array(fixedSalt);
+              saltArray.fill(0);
+              fixedSalt = null;
+            }
+            for (const p of ports) {
+              p.close();
+            }
+            self.close();
+          }
+          break;
+
+        default:
+          console.warn(
+            `Worker: Unknown message type received: ${type}. Ignoring the message.`
+          );
+      }
+    };
+    port.start();
   }
 
-  function handleInit(e: MessageEvent) {
-    const { type } = e.data;
-
-    if (type === "init" && e.ports && e.ports.length > 0) {
-      port = e.ports[0];
-      port.onmessage = onMessage;
-      port.start();
-    }
-  }
-
-  self.onmessage = handleInit;
+  self.onconnect = onConnect;
 }
