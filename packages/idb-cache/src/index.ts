@@ -616,10 +616,7 @@ export class IDBCache implements IDBCacheInterface {
             await waitForAnimationFrame();
           }
           const existingChunk = await db.get(this.storeName, chunkKey);
-          if (
-            existingChunk &&
-            existingChunk.timestamp !== expirationTimestamp
-          ) {
+          if (existingChunk) {
             chunksToUpdate.push({
               ...existingChunk,
               timestamp: expirationTimestamp,
