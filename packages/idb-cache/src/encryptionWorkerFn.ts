@@ -226,13 +226,19 @@ export function encryptionWorkerFunction() {
       switch (type) {
         case "initialize":
           {
-            const {
+            let {
               cacheKey: incomingCacheKey,
               pbkdf2Iterations: incomingIterations,
               cacheBuster,
             } = payload;
+            if (!incomingCacheKey) {
+              incomingCacheKey = crypto.randomUUID();
+            }
             cacheKey = new TextEncoder().encode(incomingCacheKey);
             pbkdf2Iterations = incomingIterations || 100000;
+            if (!cacheBuster) {
+              cacheBuster = crypto.randomUUID();
+            }
             fixedSalt = new TextEncoder().encode(cacheBuster).buffer;
             initializeKey().catch((error) => {
               console.error("Worker: Initialization failed:", error);
