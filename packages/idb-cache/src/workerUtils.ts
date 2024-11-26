@@ -66,10 +66,9 @@ export function createWorkerFromFunction(
   worker: SharedWorker;
   port: MessagePort;
 } {
-  const blob = new Blob([`(${fn.toString()})()`], {
-    type: "application/javascript",
-  });
-  const url = URL.createObjectURL(blob);
+  const scriptSource = `(${fn.toString()})()`;
+  const base64Source = btoa(scriptSource);
+  const url = `data:application/javascript;base64,${base64Source}`;
   const worker = new SharedWorker(url, {
     name: "idb-cache-worker",
   });
