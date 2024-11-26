@@ -55,21 +55,17 @@ export function encryptionWorkerFunction() {
     return derivedKey;
   }
 
-  async function initializeKey() {
+  async function initializeKey(port: MessagePort) {
     if (!cacheKey) {
       throw new Error("Cache key not provided for encryption worker");
     }
     try {
-      for (const port of ports) {
-        port.postMessage({ type: "ready" });
-      }
+      port.postMessage({ type: "ready" });
     } catch (error: unknown) {
       console.error("Worker: Failed to initialize AES key:", error);
       const errorMessage =
         error instanceof Error ? error.message : "Unknown initialization error";
-      for (const port of ports) {
-        port.postMessage({ type: "initError", error: errorMessage });
-      }
+      port.postMessage({ type: "initError", error: errorMessage });
     }
   }
 
@@ -215,11 +211,8 @@ export function encryptionWorkerFunction() {
     });
   }
 
-  const ports: MessagePort[] = [];
-
   function onConnect(e: MessageEvent) {
     const port = e.ports[0];
-    ports.push(port);
     port.onmessage = (event: MessageEvent<WorkerMessage>) => {
       const { type, payload, requestId } = event.data;
 
@@ -240,7 +233,7 @@ export function encryptionWorkerFunction() {
               cacheBuster = crypto.randomUUID();
             }
             fixedSalt = new TextEncoder().encode(cacheBuster).buffer;
-            initializeKey().catch((error) => {
+            initializeKey(port).catch((error) => {
               console.error("Worker: Initialization failed:", error);
             });
           }
@@ -257,24 +250,6 @@ export function encryptionWorkerFunction() {
           {
             const { iv, ciphertext } = payload;
             handleDecrypt(requestId, iv, ciphertext, port);
-          }
-          break;
-
-        case "destroy":
-          {
-            if (cacheKey) {
-              cacheKey.fill(0);
-              cacheKey = null;
-            }
-            if (fixedSalt) {
-              const saltArray = new Uint8Array(fixedSalt);
-              saltArray.fill(0);
-              fixedSalt = null;
-            }
-            for (const p of ports) {
-              p.close();
-            }
-            self.close();
           }
           break;
 

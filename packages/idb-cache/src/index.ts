@@ -825,8 +825,6 @@ export class IDBCache implements IDBCacheInterface {
       });
 
       if (this.port) {
-        this.port.postMessage({ type: "destroy" });
-        this.port.close();
         this.port = null;
       }
 
