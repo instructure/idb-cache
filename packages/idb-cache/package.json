@@ -19,9 +19,7 @@
 	},
 	"module": "./dist/index.js",
 	"types": "./dist/index.d.ts",
-	"files": [
-		"dist"
-	],
+	"files": ["dist"],
 	"scripts": {
 		"build": "rslib build",
 		"dev": "rslib build --watch",
@@ -38,5 +36,8 @@
 		"idb": "^8.0.0",
 		"typescript": "^5.6.3",
 		"vitest": "^2.1.5"
+	},
+	"publishConfig": {
+		"directory": "../../"
 	}
 }
