@@ -15,5 +15,6 @@ test-results
 playwright-report
 /blob-report/
 /playwright/.cache/
+packages/idb-cache/README.md
 packages/idb-cache/test-results
 packages/idb-cache-app/test-results

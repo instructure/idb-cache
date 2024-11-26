@@ -1,6 +1,6 @@
 {
 	"name": "@instructure/idb-cache",
-	"version": "1.1.4",
+	"version": "1.1.6",
 	"license": "MIT",
 	"repository": {
 		"type": "git",
@@ -19,16 +19,14 @@
 	},
 	"module": "./dist/index.js",
 	"types": "./dist/index.d.ts",
-	"files": [
-		"dist",
-		"README.md"
-	],
+	"files": ["dist", "README.md"],
 	"scripts": {
 		"build": "rslib build",
 		"dev": "rslib build --watch",
 		"biome:check": "biome check . --write",
 		"typescript:check": "tsc --noEmit",
-		"test": "vitest"
+		"test": "vitest",
+		"prepublish": "rslib build && cp ../../README.md ."
 	},
 	"peerDependencies": {
 		"@rslib/core": "^0.0.15"
