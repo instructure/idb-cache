@@ -71,8 +71,7 @@ export interface IDBCacheConfig {
    */
   debug?: boolean;
   /**
-   * Milliseconds after which cached items are considered eligible
-   * for removal during garbage collection.
+   * Milliseconds after which cached items are considered eligible for removal.
    */
   maxAge?: number;
   /**
@@ -233,7 +232,8 @@ export class IDBCache implements IDBCacheInterface {
   }
 
   /**
-   * Cleans up the cache by removing expired items, flushing busted cache items, and enforcing the maxTotalChunks limit.
+   * Cleans up the cache by removing expired items, flushing busted cache items,
+   * and enforcing the maxTotalChunks limit.
    * @throws {DatabaseError} If there is an issue accessing the database.
    */
   public async cleanup(): Promise<void> {
