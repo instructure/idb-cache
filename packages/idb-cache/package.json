@@ -1,6 +1,6 @@
 {
 	"name": "@instructure/idb-cache",
-	"version": "1.0.3",
+	"version": "1.1.0",
 	"license": "MIT",
 	"repository": {
 		"type": "git",
@@ -19,7 +19,9 @@
 	},
 	"module": "./dist/index.js",
 	"types": "./dist/index.d.ts",
-	"files": ["dist"],
+	"files": [
+		"dist"
+	],
 	"scripts": {
 		"build": "rslib build",
 		"dev": "rslib build --watch",
