@@ -74,7 +74,7 @@ export interface IDBCacheConfig {
    * Milliseconds after which cached items are considered eligible
    * for removal during garbage collection.
    */
-  gcTime?: number;
+  maxAge?: number;
   /**
    * The maximum number of chunks to store in the cache. During cleanup,
    * idb-cache removes the oldest excess chunks. Defaults to undefined,
@@ -94,7 +94,7 @@ export interface IDBCacheConfig {
 
 const DB_VERSION = 2;
 const DEFAULT_CHUNK_SIZE = 25000; // recommendation: keep under 100KiB (cf. https://surma.dev/things/is-postmessage-slow/)
-const DEFAULT_GC_TIME = 7 * 24 * 60 * 60 * 1000; // 7 days
+const DEFAULT_MAX_AGE = 7 * 24 * 60 * 60 * 1000; // 7 days
 const DEFAULT_PBKDF2_ITERATIONS = 100000;
 const CLEANUP_INTERVAL = 60 * 1000; // 1 minute
 const DURATION_THRESHOLD = 200;
@@ -111,7 +111,7 @@ export class IDBCache implements IDBCacheInterface {
     ExtendedPendingRequest<EncryptedChunk | string>
   >;
   private workerReadyPromise: Promise<void> | null = null;
-  private gcTime: number;
+  private maxAge: number;
   private cleanupIntervalId: number | undefined;
 
   private cacheKey?: string;
@@ -129,7 +129,7 @@ export class IDBCache implements IDBCacheInterface {
       cacheBuster,
       debug = false,
       dbName = "idb-cache",
-      gcTime = DEFAULT_GC_TIME,
+      maxAge = DEFAULT_MAX_AGE,
       chunkSize = DEFAULT_CHUNK_SIZE,
       cleanupInterval = CLEANUP_INTERVAL,
       pbkdf2Iterations = DEFAULT_PBKDF2_ITERATIONS,
@@ -141,7 +141,7 @@ export class IDBCache implements IDBCacheInterface {
     this.cacheKey = cacheKey;
     this.cacheBuster = cacheBuster || "";
     this.debug = debug;
-    this.gcTime = gcTime;
+    this.maxAge = maxAge;
     this.chunkSize = chunkSize;
     this.cleanupInterval = cleanupInterval;
     this.pbkdf2Iterations = pbkdf2Iterations;
@@ -573,7 +573,7 @@ export class IDBCache implements IDBCacheInterface {
       }
       const db = await this.dbReadyPromise;
       const baseKey = await deterministicUUID(`${this.cacheKey}:${itemKey}`);
-      const expirationTimestamp = Date.now() + this.gcTime;
+      const expirationTimestamp = Date.now() + this.maxAge;
 
       if (this.priority === "low") {
         await waitForAnimationFrame();
