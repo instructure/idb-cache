@@ -45,11 +45,11 @@ export interface IDBCacheConfig {
   /**
    * Sensitive identifier used for securely encrypting data.
    */
-  cacheKey: string;
+  cacheKey?: string;
   /**
    * Unique value (not sensitive) used to invalidate old cache entries.
    */
-  cacheBuster: string;
+  cacheBuster?: string;
   /**
    * Size of each chunk in bytes. When an item exceeds this size,
    * it splits into multiple chunks. Defaults to 25000 bytes.
@@ -114,11 +114,11 @@ export class IDBCache implements IDBCacheInterface {
   private gcTime: number;
   private cleanupIntervalId: number | undefined;
 
-  private cacheKey: string;
+  private cacheKey?: string;
+  private cacheBuster: string;
   private chunkSize: number;
   private cleanupInterval: number;
   private pbkdf2Iterations: number;
-  private cacheBuster: string;
   private debug: boolean;
   private maxTotalChunks?: number;
   private priority: "normal" | "low" = "normal";
@@ -139,7 +139,7 @@ export class IDBCache implements IDBCacheInterface {
 
     this.storeName = "cache";
     this.cacheKey = cacheKey;
-    this.cacheBuster = cacheBuster;
+    this.cacheBuster = cacheBuster || "";
     this.debug = debug;
     this.gcTime = gcTime;
     this.chunkSize = chunkSize;
@@ -189,8 +189,8 @@ export class IDBCache implements IDBCacheInterface {
    * @throws {WorkerInitializationError} If the worker fails to initialize.
    */
   private async initWorker(
-    cacheKey: string,
-    cacheBuster: string
+    cacheKey?: string,
+    cacheBuster?: string
   ): Promise<void> {
     if (this.workerReadyPromise) {
       return this.workerReadyPromise;
@@ -612,9 +612,6 @@ export class IDBCache implements IDBCacheInterface {
         const isLastChunk = chunkIndex === totalChunks - 1;
 
         if (existingChunkKeysSet.has(chunkKey)) {
-          if (this.priority === "low") {
-            await waitForAnimationFrame();
-          }
           const existingChunk = await db.get(this.storeName, chunkKey);
           if (existingChunk) {
             chunksToUpdate.push({
@@ -625,6 +622,9 @@ export class IDBCache implements IDBCacheInterface {
             });
           }
         } else {
+          if (this.priority === "low") {
+            await waitForAnimationFrame();
+          }
           const encryptedChunk = await encryptChunk(
             this.getPort(),
             chunk,

@@ -229,9 +229,6 @@ export function encryptionWorkerFunction() {
             }
             cacheKey = new TextEncoder().encode(incomingCacheKey);
             pbkdf2Iterations = incomingIterations || 100000;
-            if (!cacheBuster) {
-              cacheBuster = crypto.randomUUID();
-            }
             fixedSalt = new TextEncoder().encode(cacheBuster).buffer;
             initializeKey(port).catch((error) => {
               console.error("Worker: Initialization failed:", error);
