@@ -29,12 +29,13 @@ importers:
       vitest:
         specifier: ^2.1.5
         version: 2.1.5(@types/node@22.9.0)
+    publishDirectory: ../../
 
   packages/idb-cache-app:
     dependencies:
       '@instructure/idb-cache':
         specifier: workspace:*
-        version: link:../idb-cache
+        version: link:../..
       random-seed:
         specifier: ^0.3.0
         version: 0.3.0
