@@ -55,13 +55,13 @@ const totalChunks = await cache.count();
 
 // Removes expired items, busted items, and limits chunks
 // Runs at interval
-cache.cleanup();
+await cache.cleanup();
 
 // Clears all items from cache
-cache.clear();
+await cache.clear();
 
 // Destroy the cache instance
-cache.destroy();
+await cache.destroy();
 ```
 
 ## Features
@@ -135,6 +135,7 @@ flowchart TD
 
 - [IndexedDB](https://developer.mozilla.org/en-US/docs/Web/API/IndexedDB_API)
 - [Web Workers](https://developer.mozilla.org/en-US/docs/Web/API/Web_Workers_API)
+  - [SharedWorker](https://developer.mozilla.org/en-US/docs/Web/API/SharedWorker)
   - [MessageChannel](https://developer.mozilla.org/en-US/docs/Web/API/MessageChannel)
   - [MessagePort](https://developer.mozilla.org/en-US/docs/Web/API/MessagePort)
   - [Transferable objects](https://developer.mozilla.org/en-US/docs/Web/API/Web_Workers_API/Transferable_objects)
