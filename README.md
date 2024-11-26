@@ -78,24 +78,18 @@ Integrate idb-cache as an AsyncStorage persister for TanStack Query.
 
 ```typescript
 import { QueryClient } from '@tanstack/query-core';
-import { experimental_createPersister } from '@tanstack/query-persist-client-core';
-import { IDBCache } from 'idb-cache';
-
-const cacheBuster = 'my_salt'; // Doubles as salt for encryption
+import { experimental_createPersister as createPersister } from '@tanstack/query-persist-client-core';
+import { IDBCache } from '@instructure/idb-cache';
 
 const idbCache = new IDBCache({
   cacheKey: 'user_cache_key',
-  cacheBuster,
 });
 
-// Create the persister
-const persister = experimental_createPersister({
+const persister = createPersister({
   storage: idbCache,
   maxAge: 1000 * 60 * 60 * 24 * 7, // 7 days
-  buster: cacheBuster,
 });
 
-// Initialize the QueryClient with the persister
 export const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
@@ -105,6 +99,8 @@ export const queryClient = new QueryClient({
     },
   },
 });
+
+
 ```
 
 ## Data flow
