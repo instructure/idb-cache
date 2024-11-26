@@ -1,5 +1,6 @@
 import "./App.css";
-import { IDBCache } from "@instructure/idb-cache";
+// import { IDBCache } from "@instructure/idb-cache";
+import { IDBCache } from "../../idb-cache/dist";
 import { useCallback, useRef, useState, useEffect } from "react";
 import { deterministicHash } from "./utils";
 import { Button } from "@instructure/ui-buttons";
