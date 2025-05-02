@@ -6,7 +6,7 @@
 		"dev": "rsbuild dev --open",
 		"build": "rsbuild build",
 		"preview": "rsbuild preview",
-		"test": "playwright test"
+		"test:e2e": "playwright test"
 	},
 	"dependencies": {
 		"@instructure/idb-cache": "workspace:*",
