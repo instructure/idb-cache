@@ -17,7 +17,7 @@ import {
  * @throws {EncryptionError} If encryption fails.
  */
 export async function encryptChunk(
-  port: MessagePort,
+  port: MessagePort | Worker,
   value: string,
   pendingRequests: Map<string, ExtendedPendingRequest<EncryptedChunk>>
 ): Promise<EncryptedChunk> {
@@ -60,7 +60,7 @@ export async function encryptChunk(
  * @throws {DecryptionError} If decryption fails.
  */
 export async function decryptChunk(
-  port: MessagePort,
+  port: MessagePort | Worker,
   iv: ArrayBuffer,
   ciphertext: ArrayBuffer,
   pendingRequests: Map<string, ExtendedPendingRequest<string>>

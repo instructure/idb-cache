@@ -103,8 +103,8 @@ const isSubtleCryptoSupported = crypto?.subtle;
 export class IDBCache implements IDBCacheInterface {
   dbReadyPromise: Promise<import("idb").IDBPDatabase<IDBCacheSchema>>;
   private storeName: STORE;
-  private worker: SharedWorker | null = null;
-  private port: MessagePort | null = null;
+  private worker: SharedWorker | Worker | null = null;
+  private port: MessagePort | Worker | null = null;
   private pendingRequests: Map<
     string,
     ExtendedPendingRequest<EncryptedChunk | string>
@@ -397,7 +397,7 @@ export class IDBCache implements IDBCacheInterface {
     await this.workerReadyPromise;
   }
 
-  private getPort(): MessagePort {
+  private getPort(): MessagePort | Worker {
     if (!this.port) {
       throw new WorkerInitializationError("Worker port is not initialized.");
     }
@@ -826,7 +826,11 @@ export class IDBCache implements IDBCacheInterface {
       }
 
       if (this.worker) {
-        this.worker.port.close();
+        if (this.worker instanceof SharedWorker) {
+          this.worker.port.close();
+        } else {
+          this.worker.terminate();
+        }
         this.worker = null;
       }
 

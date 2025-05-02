@@ -63,24 +63,36 @@ export function createWorkerFromFunction(
   fn: () => void,
   rejectAll: (errorMessage: string) => void
 ): {
-  worker: SharedWorker;
-  port: MessagePort;
+  worker: SharedWorker | Worker;
+  port: MessagePort | Worker;
 } {
   const scriptSource = `(${fn.toString()})()`;
   const base64Source = btoa(scriptSource);
   const url = `data:application/javascript;base64,${base64Source}`;
-  const worker = new SharedWorker(url, {
+  const options = {
     name: "idb-cache-worker",
-  });
+  };
 
-  const port = worker.port;
+  let worker: SharedWorker | Worker;
+  let port: MessagePort | Worker;
 
-  port.start();
+  if ("SharedWorker" in window) {
+    worker = new SharedWorker(url, options);
+    port = worker.port;
+    port.start();
+  } else {
+    worker = new Worker(url, options);
+    port = worker;
+  }
 
   worker.onerror = (event) => {
     console.error("SharedWorker encountered an error:", event.message);
     rejectAll("SharedWorker encountered an error and was terminated.");
-    worker.port.close();
+    if (worker instanceof SharedWorker) {
+      worker.port.close();
+    } else {
+      worker.terminate();
+    }
   };
 
   port.onmessageerror = () => {
@@ -88,7 +100,11 @@ export function createWorkerFromFunction(
       "MessagePort encountered a message error. SharedWorker may have been terminated."
     );
     rejectAll("SharedWorker was terminated unexpectedly.");
-    port.close();
+    if (port instanceof MessagePort) {
+      port.close();
+    } else {
+      port.terminate();
+    }
   };
 
   return { worker, port };
@@ -118,7 +134,7 @@ export function rejectAllPendingRequests(
  * @param pendingRequests - Map of pending requests awaiting responses.
  */
 export function initializeWorker(
-  port: MessagePort,
+  port: MessagePort | Worker,
   resolveReady: () => void,
   rejectReady: (reason?: unknown) => void,
   pendingRequests: Map<string, ExtendedPendingRequest<EncryptedChunk | string>>
@@ -185,7 +201,11 @@ export function initializeWorker(
       pendingRequests,
       "SharedWorker encountered an error and was terminated."
     );
-    port.close();
+    if (port instanceof MessagePort) {
+      port.close();
+    } else {
+      port.terminate();
+    }
   };
 }
 
@@ -200,7 +220,7 @@ export function initializeWorker(
  * @returns A promise that resolves with the worker's response.
  */
 export async function sendMessageToWorker<T extends WorkerMessage["type"]>(
-  port: MessagePort,
+  port: MessagePort | Worker,
   requestId: string,
   message: Extract<WorkerMessage, { type: T }>,
   pendingRequests: Map<string, ExtendedPendingRequest<WorkerResponseType<T>>>,
