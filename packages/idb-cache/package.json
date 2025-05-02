@@ -36,7 +36,7 @@
 		"@types/node": "^22.15.3",
 		"idb": "^8.0.2",
 		"typescript": "^5.8.3",
-		"vitest": "^2.1.5"
+		"vitest": "^3.1.2"
 	},
 	"publishConfig": {
 		"directory": "../../"
