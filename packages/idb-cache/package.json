@@ -29,10 +29,10 @@
 		"prepublish": "rslib build && cp ../../README.md ."
 	},
 	"peerDependencies": {
-		"@rslib/core": "^0.0.15"
+		"@rslib/core": "^0.6.8"
 	},
 	"devDependencies": {
-		"@rslib/core": "^0.0.15",
+		"@rslib/core": "^0.6.8",
 		"@types/node": "^22.15.3",
 		"idb": "^8.0.2",
 		"typescript": "^5.8.3",
