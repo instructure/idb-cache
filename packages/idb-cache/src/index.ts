@@ -201,12 +201,6 @@ export class IDBCache implements IDBCacheInterface {
     cacheKey?: string,
     cacheBuster?: string
   ): Promise<void> {
-    if (this.workerInitializationFailed) {
-      throw new WorkerInitializationError(
-        "Worker initialization previously failed"
-      );
-    }
-
     if (this.workerReadyPromise) {
       return this.workerReadyPromise;
     }
@@ -245,6 +239,7 @@ export class IDBCache implements IDBCacheInterface {
       if (error instanceof IDBCacheError) {
         throw error;
       }
+      this.workerInitializationFailed = true;
       throw new WorkerInitializationError("Worker failed to initialize.");
     }
   }
