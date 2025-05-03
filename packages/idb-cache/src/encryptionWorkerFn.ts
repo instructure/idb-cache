@@ -3,7 +3,9 @@
 
 import type { WorkerMessage } from "./types";
 
-declare const self: SharedWorkerGlobalScope;
+interface PostMessageCapable {
+  postMessage(message: unknown, transfer?: Transferable[]): void;
+}
 
 export function encryptionWorkerFunction() {
   let cacheKey: Uint8Array | null = null;
@@ -55,7 +57,7 @@ export function encryptionWorkerFunction() {
     return derivedKey;
   }
 
-  async function initializeKey(port: MessagePort) {
+  async function initializeKey(port: PostMessageCapable) {
     if (!cacheKey) {
       throw new Error("Cache key not provided for encryption worker");
     }
@@ -159,11 +161,15 @@ export function encryptionWorkerFunction() {
     }
   }
 
-  function handleEncrypt(requestId: string, value: string, port: MessagePort) {
+  function handleEncrypt(
+    requestId: string,
+    value: string,
+    port: PostMessageCapable
+  ) {
     enqueueTask(async () => {
       try {
         const encrypted = await encrypt(value);
-        if (!port) throw new Error("MessagePort is not available");
+        if (!port) throw new Error("Worker is not available");
 
         port.postMessage(
           {
@@ -188,12 +194,12 @@ export function encryptionWorkerFunction() {
     requestId: string,
     iv: ArrayBuffer,
     ciphertext: ArrayBuffer,
-    port: MessagePort
+    port: PostMessageCapable
   ) {
     enqueueTask(async () => {
       try {
         const decrypted = await decrypt(iv, ciphertext);
-        if (!port) throw new Error("MessagePort is not available");
+        if (!port) throw new Error("Worker is not available");
 
         port.postMessage({
           requestId,
@@ -211,9 +217,8 @@ export function encryptionWorkerFunction() {
     });
   }
 
-  function onConnect(e: MessageEvent) {
-    const port = e.ports[0];
-    port.onmessage = (event: MessageEvent<WorkerMessage>) => {
+  const processMessageFn =
+    (port: PostMessageCapable) => (event: MessageEvent<WorkerMessage>) => {
       const { type, payload, requestId } = event.data;
 
       switch (type) {
@@ -256,8 +261,21 @@ export function encryptionWorkerFunction() {
           );
       }
     };
-    port.start();
+
+  const isSharedWorker = "SharedWorkerGlobalScope" in self;
+  const isWorker = "WorkerGlobalScope" in self;
+
+  // SharedWorker
+  if (isSharedWorker && "onconnect" in self) {
+    self.onconnect = (e: MessageEvent<WorkerMessage>) => {
+      const port = e.ports[0];
+      port.onmessage = processMessageFn(port);
+      port.start();
+    };
   }
 
-  self.onconnect = onConnect;
+  // Worker
+  else if (isWorker && "onmessage" in self) {
+    self.onmessage = processMessageFn(self);
+  }
 }
