@@ -116,6 +116,7 @@ export class IDBCache implements IDBCacheInterface {
     ExtendedPendingRequest<EncryptedChunk | string>
   >;
   private workerReadyPromise: Promise<void> | null = null;
+  private workerInitializationFailed = false;
   private maxAge: number;
   private cleanupIntervalId: number | undefined;
 
@@ -200,11 +201,18 @@ export class IDBCache implements IDBCacheInterface {
     cacheKey?: string,
     cacheBuster?: string
   ): Promise<void> {
+    if (this.workerInitializationFailed) {
+      throw new WorkerInitializationError(
+        "Worker initialization previously failed"
+      );
+    }
+
     if (this.workerReadyPromise) {
       return this.workerReadyPromise;
     }
     this.workerReadyPromise = new Promise<void>((resolve, reject) => {
       const rejectAll = (errorMessage: string) => {
+        this.workerInitializationFailed = true;
         reject(new WorkerInitializationError(errorMessage));
         rejectAllPendingRequests(this.pendingRequests, errorMessage);
       };
@@ -401,6 +409,12 @@ export class IDBCache implements IDBCacheInterface {
   }
 
   private async ensureWorkerInitialized() {
+    if (this.workerInitializationFailed) {
+      throw new WorkerInitializationError(
+        "Worker initialization previously failed"
+      );
+    }
+
     if (!this.workerReadyPromise) {
       throw new WorkerInitializationError("Worker is not initialized.");
     }
@@ -423,6 +437,10 @@ export class IDBCache implements IDBCacheInterface {
    * @throws {WorkerInitializationError} If the worker is not initialized properly.
    */
   public async getItem(itemKey: string): Promise<string | null> {
+    if (this.workerInitializationFailed) {
+      return Promise.resolve(null);
+    }
+
     try {
       const startTime = Date.now();
 
@@ -562,6 +580,10 @@ export class IDBCache implements IDBCacheInterface {
    * @throws {EncryptionError} If encryption fails.
    */
   public async setItem(itemKey: string, value: string): Promise<void> {
+    if (this.workerInitializationFailed) {
+      return Promise.resolve();
+    }
+
     try {
       const startTime = Date.now();
 
@@ -716,6 +738,10 @@ export class IDBCache implements IDBCacheInterface {
    * @throws {DatabaseError} If there is an issue accessing the database.
    */
   public async removeItem(itemKey: string): Promise<void> {
+    if (this.workerInitializationFailed) {
+      return Promise.resolve();
+    }
+
     try {
       const db = await this.dbReadyPromise;
       const baseKey = await deterministicUUID(`${this.cacheKey}:${itemKey}`);
@@ -754,6 +780,12 @@ export class IDBCache implements IDBCacheInterface {
    * @throws {DatabaseError} If there is an issue accessing the database.
    */
   public async count(): Promise<number> {
+    if (this.workerInitializationFailed) {
+      throw new WorkerInitializationError(
+        "Worker initialization previously failed"
+      );
+    }
+
     try {
       const db = await this.dbReadyPromise;
       const transaction = db.transaction(this.storeName, "readonly");
@@ -782,6 +814,10 @@ export class IDBCache implements IDBCacheInterface {
    * @throws {DatabaseError} If there is an issue accessing the database.
    */
   public async clear(): Promise<void> {
+    if (this.workerInitializationFailed) {
+      return;
+    }
+
     try {
       const db = await this.dbReadyPromise;
       const transaction = db.transaction(this.storeName, "readwrite");

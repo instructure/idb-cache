@@ -10,7 +10,7 @@ interface PostMessageCapable {
 export function encryptionWorkerFunction() {
   if (typeof crypto === "undefined" || !crypto?.subtle) {
     const errorMessage =
-      "Web Crypto API is not supported in a Web Worker environment.";
+      "Web Crypto API is not supported in this Web Worker environment.";
     console.error(`Worker: ${errorMessage}`);
 
     if ("SharedWorkerGlobalScope" in self && "onconnect" in self) {
