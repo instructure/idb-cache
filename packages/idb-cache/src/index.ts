@@ -187,7 +187,8 @@ export class IDBCache implements IDBCacheInterface {
         }, 10000);
       })
       .catch((error) => {
-        console.error("Worker initialization failed:", error);
+        this.workerInitializationFailed = true;
+        console.warn("Worker initialization failed:", error);
       });
   }
 
@@ -235,7 +236,6 @@ export class IDBCache implements IDBCacheInterface {
     try {
       await this.workerReadyPromise;
     } catch (error) {
-      console.error("Worker failed to initialize:", error);
       if (error instanceof IDBCacheError) {
         throw error;
       }
@@ -433,7 +433,7 @@ export class IDBCache implements IDBCacheInterface {
    */
   public async getItem(itemKey: string): Promise<string | null> {
     if (this.workerInitializationFailed) {
-      return Promise.resolve(null);
+      return null;
     }
 
     try {
@@ -525,9 +525,10 @@ export class IDBCache implements IDBCacheInterface {
 
       chunks.sort((a, b) => a.index - b.index);
 
+      const port = this.getPort();
       const decryptedChunks = await Promise.all(
         chunks.map(({ data: { iv, ciphertext } }) =>
-          decryptChunk(this.getPort(), iv, ciphertext, this.pendingRequests)
+          decryptChunk(port, iv, ciphertext, this.pendingRequests)
         )
       );
 
@@ -576,7 +577,7 @@ export class IDBCache implements IDBCacheInterface {
    */
   public async setItem(itemKey: string, value: string): Promise<void> {
     if (this.workerInitializationFailed) {
-      return Promise.resolve();
+      return;
     }
 
     try {
@@ -707,7 +708,7 @@ export class IDBCache implements IDBCacheInterface {
       }
     } catch (error) {
       if (error instanceof WorkerInitializationError) {
-        console.error("Worker port is not initialized:", error);
+        console.error("Worker initialization error in setItem:", error);
         throw error;
       }
       if (error instanceof DatabaseError) {
@@ -734,7 +735,7 @@ export class IDBCache implements IDBCacheInterface {
    */
   public async removeItem(itemKey: string): Promise<void> {
     if (this.workerInitializationFailed) {
-      return Promise.resolve();
+      return;
     }
 
     try {
@@ -776,9 +777,7 @@ export class IDBCache implements IDBCacheInterface {
    */
   public async count(): Promise<number> {
     if (this.workerInitializationFailed) {
-      throw new WorkerInitializationError(
-        "Worker initialization previously failed"
-      );
+      return 0;
     }
 
     try {
