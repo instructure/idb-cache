@@ -866,9 +866,12 @@ export class IDBCache implements IDBCacheInterface {
       }
 
       if (this.worker) {
-        if (this.worker instanceof SharedWorker) {
+        if (
+          typeof SharedWorker !== "undefined" &&
+          this.worker instanceof SharedWorker
+        ) {
           this.worker.port.close();
-        } else {
+        } else if (this.worker instanceof Worker) {
           this.worker.terminate();
         }
         this.worker = null;
