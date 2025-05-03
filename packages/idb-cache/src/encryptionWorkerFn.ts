@@ -8,6 +8,32 @@ interface PostMessageCapable {
 }
 
 export function encryptionWorkerFunction() {
+  if (typeof crypto === "undefined" || !crypto?.subtle) {
+    const errorMessage =
+      "Web Crypto API is not supported in a Web Worker environment.";
+    console.error(`Worker: ${errorMessage}`);
+
+    if ("SharedWorkerGlobalScope" in self && "onconnect" in self) {
+      self.onconnect = (e: MessageEvent<WorkerMessage>) => {
+        const port = e.ports[0];
+        port.start();
+        port.postMessage({
+          type: "initError",
+          error: errorMessage,
+        });
+      };
+    } else if ("WorkerGlobalScope" in self && "onmessage" in self) {
+      self.onmessage = () => {
+        self.postMessage({
+          type: "initError",
+          error: errorMessage,
+        });
+      };
+    }
+
+    return;
+  }
+
   let cacheKey: Uint8Array | null = null;
   const derivedKeyCache: Map<string, CryptoKey> = new Map();
   let pbkdf2Iterations = 100000;
