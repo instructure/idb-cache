@@ -57,11 +57,13 @@ function isErrorResponse(
  * Creates a SharedWorker from a given function and sets up initial communication.
  * @param fn - The worker function to execute.
  * @param rejectAll - Function to call to reject all pending requests in case of failure.
+ * @param useSharedWorker - Whether to use SharedWorker if available (defaults to true).
  * @returns An object containing the worker instance and its message port.
  */
 export function createWorkerFromFunction(
   fn: () => void,
-  rejectAll: (errorMessage: string) => void
+  rejectAll: (errorMessage: string) => void,
+  useSharedWorker = true
 ): {
   worker: SharedWorker | Worker;
   port: MessagePort | Worker;
@@ -76,7 +78,7 @@ export function createWorkerFromFunction(
   let worker: SharedWorker | Worker;
   let port: MessagePort | Worker;
 
-  if ("SharedWorker" in window) {
+  if (useSharedWorker && "SharedWorker" in window) {
     worker = new SharedWorker(url, options);
     port = worker.port;
     port.start();

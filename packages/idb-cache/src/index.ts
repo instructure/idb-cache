@@ -89,6 +89,12 @@ export interface IDBCacheConfig {
    * Low priority slightly delays start of operations to reduce load on the event loop.
    */
   priority?: "normal" | "low";
+  /**
+   * Controls whether to use SharedWorker or Worker for encryption/decryption.
+   * When true (default), uses SharedWorker if available, falling back to Worker.
+   * When false, always uses Worker even if SharedWorker is available.
+   */
+  useSharedWorker?: boolean;
 }
 
 const DB_VERSION = 2;
@@ -121,6 +127,7 @@ export class IDBCache implements IDBCacheInterface {
   private debug: boolean;
   private maxTotalChunks?: number;
   private priority: "normal" | "low" = "normal";
+  private useSharedWorker: boolean;
 
   constructor(config: IDBCacheConfig) {
     const {
@@ -134,6 +141,7 @@ export class IDBCache implements IDBCacheInterface {
       pbkdf2Iterations = DEFAULT_PBKDF2_ITERATIONS,
       maxTotalChunks,
       priority = "normal",
+      useSharedWorker = true,
     } = config;
 
     this.storeName = "cache";
@@ -147,6 +155,7 @@ export class IDBCache implements IDBCacheInterface {
     this.maxTotalChunks = maxTotalChunks;
     this.pendingRequests = new Map();
     this.priority = priority;
+    this.useSharedWorker = useSharedWorker;
 
     if (!window.indexedDB)
       throw new DatabaseError("IndexedDB is not supported.");
@@ -194,7 +203,6 @@ export class IDBCache implements IDBCacheInterface {
     if (this.workerReadyPromise) {
       return this.workerReadyPromise;
     }
-
     this.workerReadyPromise = new Promise<void>((resolve, reject) => {
       const rejectAll = (errorMessage: string) => {
         reject(new WorkerInitializationError(errorMessage));
@@ -203,8 +211,10 @@ export class IDBCache implements IDBCacheInterface {
 
       const { worker, port } = createWorkerFromFunction(
         encryptionWorkerFunction,
-        rejectAll
+        rejectAll,
+        this.useSharedWorker
       );
+
       this.worker = worker;
       this.port = port;
 
@@ -259,7 +269,7 @@ export class IDBCache implements IDBCacheInterface {
               `Deleting expired item with timestamp ${timestamp}. It is ${age}ms older than the expiration.`
             );
           }
-          cursor.delete();
+          await cursor.delete();
         } else {
           break;
         }
@@ -282,7 +292,7 @@ export class IDBCache implements IDBCacheInterface {
               rangeCursor.value.cacheBuster
             );
           }
-          rangeCursor.delete();
+          await rangeCursor.delete();
           itemsDeleted++;
           rangeCursor = await rangeCursor.continue();
         }
@@ -352,7 +362,7 @@ export class IDBCache implements IDBCacheInterface {
 
           // Delete all collected chunkKeys
           for (const chunkKey of chunkKeysToDelete) {
-            store.delete(chunkKey);
+            await store.delete(chunkKey);
             if (this.debug) {
               console.debug(`Deleted chunk ${chunkKey}.`);
             }
