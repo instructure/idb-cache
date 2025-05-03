@@ -78,6 +78,14 @@ const App = () => {
     const stored = localStorage.priority;
     return ["normal", "low"].includes(stored) ? stored : "normal";
   });
+  const [workerType, setWorkerType] = useState<"worker" | "sharedWorker">(
+    () => {
+      const stored = localStorage.workerType;
+      return ["worker", "sharedWorker"].includes(stored)
+        ? stored
+        : "sharedWorker";
+    }
+  );
 
   const [cacheReady, setCacheReady] = useState<boolean>(false);
 
@@ -117,6 +125,7 @@ const App = () => {
           chunkSize: chunkSize,
           maxTotalChunks: maxTotalChunksStored,
           priority,
+          useSharedWorker: workerType === "sharedWorker",
         });
 
         if (!isCancelled) {
@@ -145,7 +154,7 @@ const App = () => {
         setCacheReady(false);
       }
     };
-  }, [chunkSize, maxTotalChunksStored, priority]);
+  }, [chunkSize, maxTotalChunksStored, priority, workerType]);
 
   useEffect(() => {
     localStorage.setItem("maxTotalChunksStored", String(maxTotalChunksStored));
@@ -154,6 +163,10 @@ const App = () => {
   useEffect(() => {
     localStorage.setItem("priority", String(priority));
   }, [priority]);
+
+  useEffect(() => {
+    localStorage.setItem("workerType", String(workerType));
+  }, [workerType]);
 
   const encryptAndStore = useCallback(async () => {
     const cache = cacheRef.current;
@@ -439,6 +452,39 @@ const App = () => {
                 >
                   <RadioInput label="Normal" value="normal" />
                   <RadioInput label="Low" value="low" />
+                </RadioInputGroup>
+              </WrappedFlexItem>
+
+              <WrappedFlexItem>
+                <RadioInputGroup
+                  name="worker"
+                  value={workerType}
+                  data-testid="worker-input"
+                  description={
+                    <Flex alignItems="end">
+                      <Flex.Item as="div">
+                        <View margin="0 xx-small 0 0">Worker Type</View>
+                      </Flex.Item>
+                      <Tooltip
+                        color="primary-inverse"
+                        renderTip="Worker (isolated) or SharedWorker (shared across tabs)."
+                        offsetY="5px"
+                      >
+                        <Flex.Item as="div">
+                          <IconInfoLine />
+                        </Flex.Item>
+                      </Tooltip>
+                    </Flex>
+                  }
+                  variant="toggle"
+                  onChange={(e) => {
+                    setWorkerType(
+                      e.target.value === "worker" ? "worker" : "sharedWorker"
+                    );
+                  }}
+                >
+                  <RadioInput label="Worker" value="worker" />
+                  <RadioInput label="SharedWorker" value="sharedWorker" />
                 </RadioInputGroup>
               </WrappedFlexItem>
             </WrappedFlexContainer>

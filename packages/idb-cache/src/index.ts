@@ -91,7 +91,7 @@ export interface IDBCacheConfig {
   priority?: "normal" | "low";
   /**
    * Controls whether to use SharedWorker or Worker for encryption/decryption.
-   * When true (default), uses SharedWorker if available, falling back to Worker.
+   * When true (default), uses SharedWorker if available.
    * When false, always uses Worker even if SharedWorker is available.
    */
   useSharedWorker?: boolean;
