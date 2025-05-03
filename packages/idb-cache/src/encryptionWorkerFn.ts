@@ -11,7 +11,7 @@ export function encryptionWorkerFunction() {
   if (typeof crypto === "undefined" || !crypto?.subtle) {
     const errorMessage =
       "Web Crypto API is not supported in this Web Worker environment.";
-    console.error(`Worker: ${errorMessage}`);
+    console.warn(`Worker: ${errorMessage}`);
 
     if ("SharedWorkerGlobalScope" in self && "onconnect" in self) {
       self.onconnect = (e: MessageEvent<WorkerMessage>) => {
