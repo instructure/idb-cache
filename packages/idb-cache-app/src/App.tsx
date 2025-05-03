@@ -459,7 +459,7 @@ const App = () => {
                 <RadioInputGroup
                   name="worker"
                   value={workerType}
-                  data-testid="worker-input"
+                  data-testid="worker-type-input"
                   description={
                     <Flex alignItems="end">
                       <Flex.Item as="div">
