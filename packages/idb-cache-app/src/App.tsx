@@ -467,7 +467,7 @@ const App = () => {
                       </Flex.Item>
                       <Tooltip
                         color="primary-inverse"
-                        renderTip="Worker (isolated) or SharedWorker (shared across tabs)."
+                        renderTip="Worker (isolated) or SharedWorker (shared across same-origin tabs)."
                         offsetY="5px"
                       >
                         <Flex.Item as="div">
