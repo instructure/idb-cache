@@ -115,6 +115,9 @@ importers:
       typescript:
         specifier: ^5.8.3
         version: 5.8.3
+      uuid:
+        specifier: ^11.1.0
+        version: 11.1.0
 
 packages:
 
@@ -1832,6 +1835,10 @@ packages:
 
   undici-types@6.21.0:
     resolution: {integrity: sha512-iwDZqg0QAGrg9Rav5H4n0M64c3mkR59cJ6wQp+7C4nI0gsmExaedaYLNO44eT4AtBBwjbTiGPMlt2Md0T9H9JQ==}
+
+  uuid@11.1.0:
+    resolution: {integrity: sha512-0/A9rDy9P7cJ+8w1c9WD9V//9Wj15Ce2MPz8Ri6032usz+NfePxx5AcN3bN+r6ZL6jEo066/yNYB3tn4pQEx+A==}
+    hasBin: true
 
   vite-node@3.1.2:
     resolution: {integrity: sha512-/8iMryv46J3aK13iUXsei5G/A3CUlW4665THCPS+K8xAaqrVWiGB4RfXMQXCLjpK9P2eK//BczrVkn5JLAk6DA==}
@@ -4795,6 +4802,8 @@ snapshots:
   ua-parser-js@1.0.39: {}
 
   undici-types@6.21.0: {}
+
+  uuid@11.1.0: {}
 
   vite-node@3.1.2(@types/node@22.15.3):
     dependencies:

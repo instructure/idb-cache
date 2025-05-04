@@ -1,4 +1,5 @@
 import "./App.css";
+import { v4 as uuidv4 } from "uuid";
 // import { IDBCache } from "@instructure/idb-cache";
 import { IDBCache } from "../../idb-cache/dist";
 import { useCallback, useRef, useState, useEffect } from "react";
@@ -33,13 +34,13 @@ const DEFAULT_MAX_CHUNKS_STORED = 5000;
 // Do *not* store cacheKey to localStorage in production.
 let initialCacheKey: string = localStorage.cacheKey;
 if (!initialCacheKey) {
-  initialCacheKey = crypto.randomUUID();
+  initialCacheKey = uuidv4();
   localStorage.cacheKey = initialCacheKey;
 }
 
 let initialCacheBuster: string = localStorage.cacheBuster;
 if (!initialCacheBuster) {
-  initialCacheBuster = crypto.randomUUID();
+  initialCacheBuster = uuidv4();
   localStorage.cacheBuster = initialCacheBuster;
 }
 
