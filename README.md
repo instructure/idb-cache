@@ -109,22 +109,30 @@ export const queryClient = new QueryClient({
 
 ```mermaid
 flowchart TD
-    Application([Client app]) --> |".setItem()"| IDBCache[[IDBCache]]
-    IDBCache -.-> |"Unencrypted chunks"| WebWorker{{Web Worker}}
-    WebWorker -.-> |"Encrypted chunks"| IDBCache
-    IDBCache -.-> |"Encrypted chunks"| IndexedDB[(IndexedDB)]
+ subgraph Browser["Browser"]
+        IDBCache[["IDBCache"]]
+        Application(["Client app"])
+        WebWorker{{"Web Worker"}}
+        IndexedDB[("IndexedDB")]
+  end
+    Application -- ".setItem()" --> IDBCache
+    IDBCache -. Unencrypted chunks .-> WebWorker
+    WebWorker -. Encrypted chunks .-> IDBCache
+    IDBCache -. Encrypted chunks .-> IndexedDB
 ```
 
 ### getItem
 
 ```mermaid
 flowchart TD
+ subgraph Browser["Browser"]
     Application([Client app]) --> |".getItem()"| IDBCache[[IDBCache]]
     IDBCache --> |Get chunks| IndexedDB[(IndexedDB)]
     IndexedDB -.-> |Encrypted chunks| IDBCache
     IDBCache -.-> |Encrypted chunks| WebWorker{{Web Worker}}
     WebWorker -.-> |Decrypted chunks| IDBCache
     IDBCache --> |"Item"| Application
+  end
 ```
 
 ## Technologies used
