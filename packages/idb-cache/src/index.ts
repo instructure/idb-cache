@@ -534,7 +534,11 @@ export class IDBCache implements IDBCacheInterface {
 
       const duration = Date.now() - startTime;
       if (this.debug && duration > DURATION_THRESHOLD) {
-        console.debug(`getItem for key ${itemKey} took ${duration}ms`);
+        console.debug(
+          `getItem for key ${itemKey} took ${duration}ms for ${
+            new TextEncoder().encode(decryptedChunks.join("")).length
+          } bytes`
+        );
       }
 
       return decryptedChunks.join("");
